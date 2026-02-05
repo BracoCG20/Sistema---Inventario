@@ -1,0 +1,145 @@
+@use '../../styles/variables' as v;
+@use 'sass:color';
+
+.sidebar {
+  // Heredamos el efecto cristal, pero ajustamos para que sea una barra lateral
+  @include v.glass-card;
+  height: 95vh; // No pegado al borde total para que flote
+  margin: 2.5vh 0 2.5vh 1.5rem; // Margen para dar efecto flotante
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
+  overflow: hidden;
+  z-index: 100;
+  border-radius: 20px;
+
+  // Estados de ancho
+  &.expanded {
+    width: 260px;
+  }
+  &.collapsed {
+    width: 80px;
+  }
+
+  // Cabecera del Sidebar (Logo y Botón Toggle)
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+
+    h3 {
+      font-size: 1.2rem;
+      color: v.$primary;
+      font-weight: 800;
+      white-space: nowrap; // Evita que el texto salte de línea
+      overflow: hidden;
+      transition: opacity 0.2s;
+    }
+
+    .toggle-btn {
+      background: none;
+      border: none;
+      color: v.$text-muted;
+      cursor: pointer;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      transition: color 0.2s;
+
+      &:hover {
+        color: v.$primary;
+      }
+    }
+  }
+
+  // Lista de menús
+  nav {
+    flex: 1; // Ocupa el espacio disponible
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0 1rem;
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      text-decoration: none;
+      color: v.$text-muted;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+
+      .icon {
+        font-size: 1.4rem;
+        min-width: 24px; // Asegura espacio fijo para el icono
+      }
+
+      .label {
+        margin-left: 1rem;
+        font-size: 0.95rem;
+        font-weight: 500;
+      }
+
+      // Estado Hover
+      &:hover {
+        background: rgba(255, 255, 255, 0.5);
+        color: v.$primary;
+        transform: translateX(3px);
+      }
+
+      // Estado Activo (Página actual)
+      &.active {
+        background: linear-gradient(90deg, rgba(v.$primary, 0.1), transparent);
+        color: v.$primary;
+        border-left: 3px solid v.$primary;
+
+        .icon {
+          color: v.$primary;
+        }
+      }
+    }
+  }
+
+  // Footer del Sidebar (Logout)
+  .sidebar-footer {
+    padding: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.5);
+
+    .logout-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center; // Centrado si está colapsado
+      gap: 0.8rem;
+      background: rgba(v.$danger, 0.1);
+      color: v.$danger;
+      border: none;
+      padding: 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background: v.$danger;
+        color: white;
+      }
+    }
+  }
+}
+
+// Ocultar textos cuando está colapsado
+.sidebar.collapsed {
+  .sidebar-header h3,
+  .nav-item .label,
+  .logout-btn span {
+    display: none;
+  }
+
+  .sidebar-header {
+    justify-content: center;
+  }
+}

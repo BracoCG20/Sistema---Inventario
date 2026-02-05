@@ -1,0 +1,64 @@
+@use '../../styles/variables' as v;
+
+.login-container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  // Fondo animado sutil
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(v.$primary, 0.05),
+    transparent 60%
+  );
+
+  .login-card {
+    @include v.glass-card; // Mixin de cristal
+    width: 100%;
+    max-width: 400px;
+    padding: 3rem;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.8); // Borde más nítido para Light Theme
+
+    h2 {
+      margin-bottom: 0.5rem;
+      color: v.$primary;
+      font-weight: 700;
+    }
+
+    p {
+      color: v.$text-muted;
+      margin-bottom: 2rem;
+      font-size: 0.9rem;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+
+      .input-group {
+        text-align: left;
+
+        label {
+          display: block;
+          margin-bottom: 0.5rem;
+          font-size: 0.85rem;
+          color: v.$text-main;
+          font-weight: 500;
+        }
+
+        input {
+          @include v.glass-input; // Mixin de input
+        }
+      }
+
+      button {
+        @include v.btn-primary; // Mixin de botón
+        margin-top: 1rem;
+        width: 100%;
+        padding: 12px;
+      }
+    }
+  }
+}

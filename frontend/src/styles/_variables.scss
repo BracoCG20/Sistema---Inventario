@@ -1,6 +1,60 @@
-$bg-color: #0f172a; // Fondo oscuro para resaltar el cristal
-$primary-color: #a78bfa; // Morado suave
-$secondary-color: #2dd4bf; // Turquesa
-$glass-bg: rgba(255, 255, 255, 0.1);
-$glass-border: 1px solid rgba(255, 255, 255, 0.2);
-$blur: 12px;
+@use 'sass:color';
+// Paleta de Colores (Light Theme)
+$bg-body: #f3f4f6; // Gris muy suave (Slate 100)
+$primary: #7c3aed; // Violeta Intenso (para destacar sobre blanco)
+$secondary: #0d9488; // Turquesa Oscuro (Teal 600)
+
+$text-main: #1e293b; // Gris Oscuro (Casi negro - Slate 800)
+$text-muted: #64748b; // Gris medio
+$white: #ffffff;
+
+$danger: #ef4444;
+$success: #10b981;
+
+// Mixins (Ahora se exportan automáticamente al hacer @use)
+
+@mixin glass-card {
+  background: rgba(255, 255, 255, 0.75); // Blanco translúcido
+  backdrop-filter: blur(16px); // Blur fuerte
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.6); // Borde blanco sutil
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06); // Sombra suave para dar profundidad
+  border-radius: 16px;
+  color: $text-main;
+}
+
+@mixin glass-input {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #cbd5e1; // Borde gris suave
+  color: $text-main;
+  padding: 10px 15px;
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.3s ease;
+  width: 100%;
+
+  &:focus {
+    border-color: $primary;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba($primary, 0.1);
+  }
+}
+
+@mixin btn-primary {
+  background: linear-gradient(135deg, $primary, darken($primary, 5%));
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px rgba($primary, 0.2);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 10px rgba($primary, 0.3);
+  }
+}
