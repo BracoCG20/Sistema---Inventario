@@ -1,0 +1,84 @@
+@use '../../styles/variables' as v;
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4); // Oscurece el fondo
+  backdrop-filter: blur(4px); // Desenfoca el fondo (dashboard)
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; // Siempre encima de todo
+  animation: fadeIn 0.3s ease;
+
+  .modal-container {
+    @include v.glass-card; // Hereda nuestro estilo de cristal
+    background: rgba(255, 255, 255, 0.95); // Un poco más sólido para leer bien
+    width: 90%;
+    max-width: 500px; // Ancho máximo
+    padding: 1.5rem;
+    position: relative;
+    box-shadow:
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    animation: slideUp 0.3s ease;
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      padding-bottom: 0.5rem;
+
+      h2 {
+        font-size: 1.25rem;
+        color: v.$primary;
+        font-weight: 700;
+      }
+
+      .btn-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: v.$text-muted;
+        cursor: pointer;
+        transition: color 0.2s;
+
+        &:hover {
+          color: v.$danger;
+        }
+      }
+    }
+
+    .modal-body {
+      color: v.$text-main;
+      max-height: 70vh;
+      overflow-y: auto; // Scroll si el contenido es muy largo
+    }
+  }
+}
+
+// Animaciones
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

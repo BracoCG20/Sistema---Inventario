@@ -8,9 +8,9 @@ import Login from './pages/Login/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './layout/MainLayout';
 
+import Equipos from './pages/Equipos/Equipos';
 // Páginas temporales (Placeholder) para probar la navegación
 const Dashboard = () => <h1>Dashboard (Resumen) 📊</h1>;
-const Equipos = () => <h1>Gestión de Equipos 💻</h1>;
 
 function App() {
   return (

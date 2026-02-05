@@ -1,0 +1,112 @@
+@use '../../styles/variables' as v;
+@use 'sass:color';
+
+.equipos-container {
+  // Encabezado de la página (Título y Botón Agregar)
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: v.$primary;
+    }
+
+    .btn-add {
+      @include v.btn-primary;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+  }
+
+  // Contenedor de la Tabla con efecto Glass
+  .table-container {
+    @include v.glass-card;
+    padding: 0; // Quitamos padding para que la tabla toque los bordes
+    overflow: hidden; // Para redondear las esquinas de la tabla
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+
+      thead {
+        background: rgba(v.$primary, 0.1); // Cabecera sutilmente coloreada
+
+        th {
+          text-align: left;
+          padding: 1rem 1.5rem;
+          font-weight: 600;
+          color: v.$primary;
+          text-transform: uppercase;
+          font-size: 0.8rem;
+          letter-spacing: 0.5px;
+        }
+      }
+
+      tbody {
+        tr {
+          border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+          transition: background 0.2s;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.3); // Highlight al pasar mouse
+          }
+
+          td {
+            padding: 1rem 1.5rem;
+            font-size: 0.95rem;
+            color: v.$text-main;
+
+            // Estilos para las etiquetas de estado
+            .status-badge {
+              padding: 4px 10px;
+              border-radius: 20px;
+              font-size: 0.75rem;
+              font-weight: 600;
+              text-transform: capitalize;
+
+              &.operativo {
+                background: rgba(v.$success, 0.15);
+                color: darken(v.$success, 10%);
+              }
+              &.malogrado {
+                background: rgba(v.$danger, 0.15);
+                color: darken(v.$danger, 10%);
+              }
+              &.mantenimiento {
+                background: rgba(#f59e0b, 0.15); // Ámbar
+                color: #d97706;
+              }
+            }
+
+            // Botón de icono (Ojo para ver specs)
+            .action-btn {
+              background: none;
+              border: none;
+              cursor: pointer;
+              color: v.$text-muted;
+              font-size: 1.1rem;
+              transition: color 0.2s;
+
+              &:hover {
+                color: v.$secondary;
+                transform: scale(1.1);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Mensaje si no hay datos
+    .no-data {
+      padding: 2rem;
+      text-align: center;
+      color: v.$text-muted;
+    }
+  }
+}
