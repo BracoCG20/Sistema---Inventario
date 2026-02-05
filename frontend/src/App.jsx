@@ -8,13 +8,12 @@ import Login from './pages/Login/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './layout/MainLayout';
 
+import Dashboard from './pages/Dashboard/Dashboard';
 import Equipos from './pages/Equipos/Equipos';
 import Usuarios from './pages/Usuarios/Usuarios';
 import Entrega from './pages/Entrega/Entrega';
 import Devolucion from './pages/Devolucion/Devolucion';
-
-// Páginas temporales (Placeholder) para probar la navegación
-const Dashboard = () => <h1>Dashboard (Resumen) 📊</h1>;
+import Historial from './pages/Historial/Historial';
 
 function App() {
   return (
@@ -57,6 +56,10 @@ function App() {
               <Route
                 path='/devolucion'
                 element={<Devolucion />}
+              />
+              <Route
+                path='/historial'
+                element={<Historial />}
               />
               {/* Aquí agregaremos /usuarios, /entregas, etc. */}
             </Route>

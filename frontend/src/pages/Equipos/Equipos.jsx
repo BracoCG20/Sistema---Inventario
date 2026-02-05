@@ -1,22 +1,25 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
-import { FaPlus, FaEye, FaMicrochip } from 'react-icons/fa';
+// Importamos los nuevos iconos (Lápiz y Basura)
+import { FaPlus, FaEye, FaMicrochip, FaEdit, FaTrash } from 'react-icons/fa';
 import Modal from '../../components/Modal/Modal';
-import AddEquipoForm from './AddEquipoForm'; // Importamos el formulario
+import AddEquipoForm from './AddEquipoForm';
 import './Equipos.scss';
 
 const Equipos = () => {
   const [equipos, setEquipos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Estados para el Modal
+  // Estados Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState('specs'); // 'specs' o 'add'
+  const [modalType, setModalType] = useState('specs');
+
+  // Estados Selección
   const [selectedSpecs, setSelectedSpecs] = useState(null);
   const [selectedModel, setSelectedModel] = useState('');
+  const [equipoToEdit, setEquipoToEdit] = useState(null); // <--- NUEVO: Equipo a editar
 
-  // 1. Cargar equipos desde la API
   const fetchEquipos = async () => {
     try {
       const res = await api.get('/equipos');
@@ -33,7 +36,8 @@ const Equipos = () => {
     fetchEquipos();
   }, []);
 
-  // 2. Abrir Modal para Ver Especificaciones (Lectura)
+  // --- ACCIONES ---
+
   const handleViewSpecs = (equipo) => {
     setModalType('specs');
     setSelectedSpecs(equipo.especificaciones);
@@ -41,21 +45,38 @@ const Equipos = () => {
     setIsModalOpen(true);
   };
 
-  // 3. Abrir Modal para Agregar Equipo (Escritura)
   const handleAddEquipo = () => {
-    setModalType('add');
+    setModalType('form'); // Usamos 'form' para crear y editar
+    setEquipoToEdit(null); // Limpiamos (Modo Crear)
     setIsModalOpen(true);
   };
 
-  // 4. Callback cuando se crea un equipo exitosamente
-  const handleFormSuccess = () => {
-    setIsModalOpen(false);
-    fetchEquipos(); // Recargar la tabla
+  const handleEditEquipo = (equipo) => {
+    setModalType('form'); // Usamos el mismo formulario
+    setEquipoToEdit(equipo); // Pasamos los datos (Modo Editar)
+    setIsModalOpen(true);
   };
 
-  const handleCloseModal = () => {
+  const handleDeleteEquipo = async (id) => {
+    if (
+      window.confirm(
+        '¿Estás seguro de eliminar este equipo? Esta acción no se puede deshacer.',
+      )
+    ) {
+      try {
+        await api.delete(`/equipos/${id}`);
+        toast.success('Equipo eliminado');
+        fetchEquipos(); // Recargar tabla
+      } catch (error) {
+        console.error(error);
+        toast.error('No se pudo eliminar (quizás tiene entregas registradas)');
+      }
+    }
+  };
+
+  const handleFormSuccess = () => {
     setIsModalOpen(false);
-    setSelectedSpecs(null);
+    fetchEquipos();
   };
 
   if (loading)
@@ -63,7 +84,6 @@ const Equipos = () => {
 
   return (
     <div className='equipos-container'>
-      {/* Cabecera */}
       <div className='page-header'>
         <h1>Inventario de Equipos</h1>
         <button
@@ -74,7 +94,6 @@ const Equipos = () => {
         </button>
       </div>
 
-      {/* Tabla de Datos */}
       <div className='table-container'>
         {equipos.length === 0 ? (
           <div className='no-data'>No hay equipos registrados aún.</div>
@@ -86,7 +105,7 @@ const Equipos = () => {
                 <th>Modelo</th>
                 <th>Serie</th>
                 <th>Estado</th>
-                <th>Specs</th>
+                <th>Acciones</th> {/* Columna Acciones */}
               </tr>
             </thead>
             <tbody>
@@ -101,13 +120,36 @@ const Equipos = () => {
                     </span>
                   </td>
                   <td>
-                    <button
-                      className='action-btn'
-                      onClick={() => handleViewSpecs(item)}
-                      title='Ver Especificaciones'
-                    >
-                      <FaEye />
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {/* Ver Specs */}
+                      <button
+                        className='action-btn'
+                        onClick={() => handleViewSpecs(item)}
+                        title='Ver Especificaciones'
+                      >
+                        <FaEye />
+                      </button>
+
+                      {/* Editar */}
+                      <button
+                        className='action-btn'
+                        onClick={() => handleEditEquipo(item)}
+                        title='Editar Equipo'
+                        style={{ color: '#f59e0b' }} // Color Ámbar
+                      >
+                        <FaEdit />
+                      </button>
+
+                      {/* Eliminar */}
+                      <button
+                        className='action-btn'
+                        onClick={() => handleDeleteEquipo(item.id)}
+                        title='Eliminar Equipo'
+                        style={{ color: '#ef4444' }} // Color Rojo
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -119,16 +161,17 @@ const Equipos = () => {
       {/* Modal Reutilizable */}
       <Modal
         isOpen={isModalOpen}
-        onClose={handleCloseModal}
+        onClose={() => setIsModalOpen(false)}
+        // Título dinámico
         title={
           modalType === 'specs'
             ? `Specs: ${selectedModel}`
-            : 'Registrar Nuevo Equipo'
+            : equipoToEdit
+              ? 'Editar Equipo'
+              : 'Registrar Nuevo Equipo'
         }
       >
-        {/* Lógica condicional: ¿Qué mostramos dentro del modal? */}
         {modalType === 'specs' ? (
-          // CASO A: MOSTRAR ESPECIFICACIONES
           selectedSpecs ? (
             <div className='specs-grid'>
               {Object.entries(selectedSpecs).map(([key, value]) => (
@@ -153,23 +196,14 @@ const Equipos = () => {
               ))}
             </div>
           ) : (
-            <p
-              style={{
-                textAlign: 'center',
-                color: '#94a3b8',
-                padding: '1rem',
-              }}
-            >
-              <FaMicrochip
-                style={{ fontSize: '2rem', marginBottom: '0.5rem' }}
-              />
-              <br />
-              Sin especificaciones registradas.
-            </p>
+            <p style={{ textAlign: 'center', padding: '1rem' }}>Sin datos.</p>
           )
         ) : (
-          // CASO B: MOSTRAR FORMULARIO DE AGREGAR
-          <AddEquipoForm onSuccess={handleFormSuccess} />
+          // Pasamos 'equipoToEdit' al formulario
+          <AddEquipoForm
+            onSuccess={handleFormSuccess}
+            equipoToEdit={equipoToEdit}
+          />
         )}
       </Modal>
     </div>

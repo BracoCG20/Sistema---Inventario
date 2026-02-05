@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { FaTrash, FaPlus } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
+import { FaTrash, FaPlus, FaSave } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import api from '../../services/api';
-import './FormStyles.scss'; // Importamos los estilos nuevos
+import './FormStyles.scss';
 
-const AddEquipoForm = ({ onSuccess }) => {
-  // Estado del formulario base
+// Recibimos 'equipoToEdit' (datos del equipo si vamos a editar)
+const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
+  // Estado inicial vacío
   const [formData, setFormData] = useState({
     marca: '',
     modelo: '',
@@ -13,58 +14,77 @@ const AddEquipoForm = ({ onSuccess }) => {
     estado: 'operativo',
   });
 
-  // Estado para las especificaciones dinámicas (Array de pares clave-valor)
   const [specsList, setSpecsList] = useState([
-    { key: 'Ram', value: '' }, // Una fila por defecto
+    { key: 'Ram', value: '' },
     { key: 'Procesador', value: '' },
   ]);
+
+  // EFECTO: Si hay un equipo para editar, rellenamos el formulario
+  useEffect(() => {
+    if (equipoToEdit) {
+      setFormData({
+        marca: equipoToEdit.marca,
+        modelo: equipoToEdit.modelo,
+        serie: equipoToEdit.serie,
+        estado: equipoToEdit.estado,
+      });
+
+      // Convertir el objeto JSON de specs a nuestro Array para los inputs
+      // De { "Color": "Rojo" }  --->  [{ key: "Color", value: "Rojo" }]
+      if (equipoToEdit.especificaciones) {
+        const specsArray = Object.entries(equipoToEdit.especificaciones).map(
+          ([key, value]) => ({
+            key,
+            value,
+          }),
+        );
+        // Si el array está vacío, dejamos al menos una fila
+        setSpecsList(
+          specsArray.length > 0 ? specsArray : [{ key: '', value: '' }],
+        );
+      }
+    }
+  }, [equipoToEdit]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // --- Lógica de Specs Dinámicas ---
   const handleSpecChange = (index, field, value) => {
     const newSpecs = [...specsList];
     newSpecs[index][field] = value;
     setSpecsList(newSpecs);
   };
 
-  const addSpecRow = () => {
-    setSpecsList([...specsList, { key: '', value: '' }]);
-  };
-
-  const removeSpecRow = (index) => {
-    const newSpecs = specsList.filter((_, i) => i !== index);
-    setSpecsList(newSpecs);
-  };
-  // ---------------------------------
+  const addSpecRow = () => setSpecsList([...specsList, { key: '', value: '' }]);
+  const removeSpecRow = (index) =>
+    setSpecsList(specsList.filter((_, i) => i !== index));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 1. Convertir el Array de Specs a un Objeto JSON plano para la BD
-    // De: [{ key: 'Ram', value: '8GB' }]  ---> A: { "Ram": "8GB" }
+    // Convertir Array a Objeto JSON
     const specsObject = specsList.reduce((acc, item) => {
-      if (item.key && item.value) {
-        acc[item.key] = item.value;
-      }
+      if (item.key && item.value) acc[item.key] = item.value;
       return acc;
     }, {});
 
-    // 2. Armar el payload final
-    const payload = {
-      ...formData,
-      especificaciones: specsObject,
-    };
+    const payload = { ...formData, especificaciones: specsObject };
 
     try {
-      await api.post('/equipos', payload);
-      toast.success('Equipo registrado correctamente');
-      onSuccess(); // Avisar al padre para cerrar modal y recargar tabla
+      if (equipoToEdit) {
+        // MODO EDICIÓN (PUT)
+        await api.put(`/equipos/${equipoToEdit.id}`, payload);
+        toast.success('Equipo actualizado correctamente');
+      } else {
+        // MODO CREACIÓN (POST)
+        await api.post('/equipos', payload);
+        toast.success('Equipo registrado correctamente');
+      }
+      onSuccess();
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.error || 'Error al guardar');
+      toast.error('Error al guardar');
     }
   };
 
@@ -78,7 +98,7 @@ const AddEquipoForm = ({ onSuccess }) => {
           <label>Marca</label>
           <input
             name='marca'
-            placeholder='Ej: Dell'
+            value={formData.marca}
             onChange={handleChange}
             required
           />
@@ -87,7 +107,7 @@ const AddEquipoForm = ({ onSuccess }) => {
           <label>Modelo</label>
           <input
             name='modelo'
-            placeholder='Ej: Latitude 5420'
+            value={formData.modelo}
             onChange={handleChange}
             required
           />
@@ -99,13 +119,13 @@ const AddEquipoForm = ({ onSuccess }) => {
           <label>Serie (S/N)</label>
           <input
             name='serie'
-            placeholder='Ej: XYZ-1234'
+            value={formData.serie}
             onChange={handleChange}
             required
           />
         </div>
         <div className='input-group'>
-          <label>Estado Inicial</label>
+          <label>Estado</label>
           <select
             name='estado'
             value={formData.estado}
@@ -118,7 +138,6 @@ const AddEquipoForm = ({ onSuccess }) => {
         </div>
       </div>
 
-      {/* SECCIÓN DINÁMICA */}
       <div className='specs-section'>
         <h4>Especificaciones Técnicas</h4>
         {specsList.map((spec, index) => (
@@ -127,27 +146,24 @@ const AddEquipoForm = ({ onSuccess }) => {
             key={index}
           >
             <input
-              placeholder='Propiedad (ej: Color)'
+              placeholder='Propiedad'
               value={spec.key}
               onChange={(e) => handleSpecChange(index, 'key', e.target.value)}
             />
             <input
-              placeholder='Valor (ej: Negro)'
+              placeholder='Valor'
               value={spec.value}
               onChange={(e) => handleSpecChange(index, 'value', e.target.value)}
             />
-            {specsList.length > 1 && (
-              <button
-                type='button'
-                className='btn-remove'
-                onClick={() => removeSpecRow(index)}
-              >
-                <FaTrash />
-              </button>
-            )}
+            <button
+              type='button'
+              className='btn-remove'
+              onClick={() => removeSpecRow(index)}
+            >
+              <FaTrash />
+            </button>
           </div>
         ))}
-
         <button
           type='button'
           className='btn-add-spec'
@@ -161,7 +177,8 @@ const AddEquipoForm = ({ onSuccess }) => {
         type='submit'
         className='btn-submit'
       >
-        Guardar Equipo
+        <FaSave style={{ marginRight: '8px' }} />
+        {equipoToEdit ? 'Actualizar Cambios' : 'Guardar Nuevo Equipo'}
       </button>
     </form>
   );

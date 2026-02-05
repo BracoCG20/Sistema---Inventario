@@ -54,7 +54,33 @@ const createEquipo = async (req, res) => {
   }
 };
 
-module.exports = {
-  getEquipos,
-  createEquipo,
+const updateEquipo = async (req, res) => {
+  const { id } = req.params;
+  const { marca, modelo, serie, estado, especificaciones } = req.body;
+
+  try {
+    await db.query(
+      'UPDATE equipos SET marca=$1, modelo=$2, serie=$3, estado=$4, especificaciones=$5 WHERE id=$6',
+      [marca, modelo, serie, estado, especificaciones, id],
+    );
+    res.json({ message: 'Equipo actualizado' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al actualizar equipo' });
+  }
 };
+
+const deleteEquipo = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.query('DELETE FROM equipos WHERE id = $1', [id]);
+    res.json({ message: 'Equipo eliminado' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: 'No se puede eliminar (probablemente tiene historial asociado)',
+    });
+  }
+};
+
+module.exports = { getEquipos, createEquipo, updateEquipo, deleteEquipo };

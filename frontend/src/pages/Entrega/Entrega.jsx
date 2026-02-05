@@ -2,20 +2,26 @@ import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
 import { jsPDF } from 'jspdf';
-import { FaPaperPlane } from 'react-icons/fa';
+import { FaPaperPlane, FaHistory } from 'react-icons/fa';
+import PdfModal from '../../components/Modal/PdfModal'; // <--- NUEVO IMPORT
 
 // ESTILOS
 import '../Equipos/FormStyles.scss';
 import '../Equipos/Equipos.scss';
 
-// IMÁGENES (Asegúrate de tenerlas en src/assets/)
+// IMÁGENES
 import logoImg from '../../assets/logo_gruposp.png';
 import firmaImg from '../../assets/firma_pierina.png';
 
 const Entrega = () => {
   const [equipos, setEquipos] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
+  const [historialEntregas, setHistorialEntregas] = useState([]); // <--- NUEVO ESTADO PARA TABLA
   const [loading, setLoading] = useState(true);
+
+  // Estados para PDF Preview
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState('');
 
   const [formData, setFormData] = useState({
     equipo_id: '',
@@ -24,27 +30,39 @@ const Entrega = () => {
     observaciones: '',
   });
 
+  // Cargar datos iniciales
+  const fetchData = async () => {
+    try {
+      const [resEquipos, resUsuarios, resHistorial] = await Promise.all([
+        api.get('/equipos'),
+        api.get('/usuarios'),
+        api.get('/historial'), // Traemos historial para la tabla
+      ]);
+
+      const disponibles = resEquipos.data.filter(
+        (e) => e.estado === 'operativo' && e.disponible === true,
+      );
+
+      // Filtramos solo entregas recientes
+      const entregasRecientes = resHistorial.data
+        .filter((h) => h.tipo === 'entrega')
+        .sort(
+          (a, b) => new Date(b.fecha_movimiento) - new Date(a.fecha_movimiento),
+        )
+        .slice(0, 10); // Solo las últimas 5
+
+      setEquipos(disponibles);
+      setUsuarios(resUsuarios.data);
+      setHistorialEntregas(entregasRecientes);
+    } catch (error) {
+      console.error(error);
+      toast.error('Error al cargar datos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [resEquipos, resUsuarios] = await Promise.all([
-          api.get('/equipos'),
-          api.get('/usuarios'),
-        ]);
-
-        const disponibles = resEquipos.data.filter(
-          (e) => e.estado === 'operativo' && e.disponible === true,
-        );
-
-        setEquipos(disponibles);
-        setUsuarios(resUsuarios.data);
-      } catch (error) {
-        console.error(error);
-        toast.error('Error al cargar datos');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
   }, []);
 
@@ -54,51 +72,42 @@ const Entrega = () => {
     setFormData({ ...formData, [e.target.name]: value });
   };
 
-  // --- GENERADOR PDF RÉPLICA EXACTA ---
-  const generarPDF = (equipo, usuario) => {
+  // --- GENERADOR PDF (Retorna URL, NO descarga) ---
+  const generarPDFBlob = (equipo, usuario) => {
     const doc = new jsPDF();
-
-    // CONFIGURACIÓN DE MÁRGENES Y FUENTE
-    const margenIzq = 25; // 2.5cm aprox, estándar Word
+    const margenIzq = 25;
     const margenDer = 25;
-    const anchoPagina = 210; // A4 width en mm
-    const anchoUtil = anchoPagina - margenIzq - margenDer; // 160mm para escribir
+    const anchoPagina = 210;
+    const anchoUtil = anchoPagina - margenIzq - margenDer;
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    let y = 20; // Posición vertical inicial
+    let y = 20;
 
-    // 1. LOGO
+    // LOGO
     doc.addImage(logoImg, 'PNG', margenIzq, 10, 40, 15);
-
     y += 20;
 
-    // 2. TÍTULO
+    // TÍTULO
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     const titulo = 'ACTA DE ENTREGA DE EQUIPOS';
     const anchoTexto = doc.getTextWidth(titulo);
     const xTitulo = (anchoPagina - anchoTexto) / 2;
-
     doc.text(titulo, xTitulo, y);
     doc.line(xTitulo, y + 1, xTitulo + anchoTexto, y + 1);
-
     y += 15;
 
-    // 3. DATOS DE CABECERA
+    // FECHA
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text('Fecha de entrega:', margenIzq, y);
     doc.setFont('helvetica', 'normal');
     const fechaActual = new Date().toLocaleDateString();
     doc.text(fechaActual, margenIzq + 32, y);
-
     y += 10;
 
-    // ---------------------------------------------------------
-    // 4. PÁRRAFO INTRODUCTORIO (CON NEGRILLAS DINÁMICAS)
-    // ---------------------------------------------------------
-    // Definimos las partes del texto y su estilo
+    // INTRODUCCIÓN
     const parts = [
       {
         text: 'En Magdalena, se hace entrega al(la) señor(a) ',
@@ -112,41 +121,27 @@ const Entrega = () => {
 
     let currentX = margenIzq;
     const limitX = margenIzq + anchoUtil;
-    const leading = 5; // Altura de línea
+    const leading = 5;
 
     parts.forEach((part) => {
       doc.setFont('helvetica', part.type);
-
-      // Dividimos el texto en palabras/espacios para controlar el salto de línea
-      // Regex: captura cualquier secuencia de NO-espacios O cualquier secuencia de espacios
       const tokens = part.text.match(/(\S+|\s+)/g) || [];
-
       tokens.forEach((token) => {
         const tokenWidth = doc.getTextWidth(token);
-
-        // Si la palabra excede el ancho útil, saltamos de línea
         if (currentX + tokenWidth > limitX) {
-          // Si es solo un espacio el que sobra, no hacemos salto forzado, solo lo ignoramos visualmente
           if (!/^\s+$/.test(token)) {
             currentX = margenIzq;
             y += leading;
           }
         }
-
-        // Si estamos al inicio de una nueva línea y el token es un espacio, lo saltamos para no tener indentación rara
-        if (currentX === margenIzq && /^\s+$/.test(token)) {
-          return;
-        }
-
+        if (currentX === margenIzq && /^\s+$/.test(token)) return;
         doc.text(token, currentX, y);
         currentX += tokenWidth;
       });
     });
+    y += leading + 8;
 
-    y += leading + 8; // Espacio extra después del párrafo
-    // ---------------------------------------------------------
-
-    // 5. TABLA
+    // TABLA
     const altoFila = 8;
     const altoFilaDatos = 12;
     const col1W = 50;
@@ -156,7 +151,6 @@ const Entrega = () => {
     const xCol2 = margenIzq + col1W;
     const xCol3 = margenIzq + col1W + col2W;
 
-    // -- Cabecera Tabla --
     doc.setLineWidth(0.1);
     doc.setFont('helvetica', 'bold');
     doc.rect(margenIzq, y, anchoUtil, altoFila);
@@ -165,10 +159,8 @@ const Entrega = () => {
     doc.text('ITEMS', xCol1 + 2, y + 5);
     doc.text('DESCRIPCIÓN', xCol2 + 2, y + 5);
     doc.text('CANTIDAD', xCol3 + 2, y + 5);
-
     y += altoFila;
 
-    // -- Datos Tabla --
     doc.setFont('helvetica', 'normal');
     doc.rect(margenIzq, y, anchoUtil, altoFilaDatos);
     doc.line(xCol2, y, xCol2, y + altoFilaDatos);
@@ -176,15 +168,13 @@ const Entrega = () => {
     doc.text('Laptop y cargador', xCol1 + 2, y + 7);
     doc.text(`código de equipo: ${equipo.serie}`, xCol2 + 2, y + 7);
     doc.text('1', xCol3 + col3W / 2, y + 7, { align: 'center' });
-
     y += altoFilaDatos + 10;
 
-    // 6. CLÁUSULAS
+    // LEGAL
     const parrafo1 =
       'Por falta de equipos personales para trabajar se hace entrega de esta acta la cual se mantendrá hasta diciembre. Finalizado el plazo el Trabajador deberá devolver el equipo. En cualquier escenario se obliga a devolver estos equipos a solo el requerimiento del empleador o al término del periodo de trabajo.';
     const lineasP1 = doc.splitTextToSize(parrafo1, anchoUtil);
     doc.text(lineasP1, margenIzq, y);
-
     y += lineasP1.length * 4 + 5;
 
     doc.setFont('helvetica', 'bold');
@@ -194,7 +184,6 @@ const Entrega = () => {
       y,
     );
     y += 6;
-
     doc.setFont('helvetica', 'normal');
 
     const compromisos = [
@@ -204,42 +193,37 @@ const Entrega = () => {
       'Debo recoger y devolver el equipo al iniciar y terminar mi relación laboral; bajo previa coordinación con mi empleador.',
       'Toda devolución del equipo debe ser en oficina por cuenta propia del usuario y bajo coordinación del encargado de TI.',
     ];
-
     compromisos.forEach((item) => {
       doc.text('•', margenIzq + 5, y);
       const lineasItem = doc.splitTextToSize(item, anchoUtil - 10);
       doc.text(lineasItem, margenIzq + 10, y);
       y += lineasItem.length * 4 + 2;
     });
-
     y += 3;
     const parrafoFinal =
       'El Empleador realizará la entrega del equipo mostrando el estado correcto de la misma y de acuerdo a esto se firma esta acta de entrega.';
     const lineasPF = doc.splitTextToSize(parrafoFinal, anchoUtil);
     doc.text(lineasPF, margenIzq, y);
 
-    // 7. FIRMAS
+    // FIRMAS
     const yFirmas = y + 35 > 250 ? 250 : y + 35;
-
-    // -- Firma Izquierda --
     doc.line(margenIzq, yFirmas, margenIzq + 65, yFirmas);
     doc.setFont('helvetica', 'bold');
     doc.text(`DNI/PTP/C.E N° ${usuario.dni}`, margenIzq, yFirmas + 5);
     doc.text('EL/LA TRABAJADOR/A', margenIzq + 8, yFirmas + 10);
 
-    // -- Firma Derecha --
     const xDer = 120;
     doc.addImage(firmaImg, 'PNG', xDer + 10, yFirmas - 25, 40, 20);
     doc.line(xDer, yFirmas, xDer + 65, yFirmas);
     doc.text('PIERINA ALARCON DILLERVA', xDer, yFirmas + 5);
     doc.text('GTH', xDer + 25, yFirmas + 10);
 
-    doc.save(`Acta_${equipo.serie}.pdf`);
+    // IMPORTANTE: Devolver URL Blob
+    return doc.output('bloburl');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!formData.equipo_id || !formData.empleado_id) {
       return toast.warning('Seleccione equipo y usuario');
     }
@@ -255,15 +239,21 @@ const Entrega = () => {
       const equipoSelect = equipos.find((e) => e.id == formData.equipo_id);
       const userSelect = usuarios.find((u) => u.id == formData.empleado_id);
 
-      generarPDF(equipoSelect, userSelect);
+      // 1. Generar URL del PDF
+      const url = generarPDFBlob(equipoSelect, userSelect);
+      setPdfUrl(url);
 
+      // 2. Abrir Modal
+      setShowPdfModal(true);
+
+      // 3. Limpiar formulario y recargar datos
       setFormData({
         equipo_id: '',
         empleado_id: '',
         cargador: true,
         observaciones: '',
       });
-      setEquipos((prev) => prev.filter((e) => e.id != formData.equipo_id));
+      fetchData(); // Recarga la tabla y quita el equipo de la lista
     } catch (error) {
       console.error(error);
       toast.error('Error al registrar entrega');
@@ -279,93 +269,150 @@ const Entrega = () => {
       </div>
 
       <div
-        className='table-container'
-        style={{ padding: '2rem', maxWidth: '800px' }}
+        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}
       >
-        <form
-          className='equipo-form'
-          onSubmit={handleSubmit}
+        {/* COLUMNA IZQUIERDA: FORMULARIO */}
+        <div
+          className='table-container'
+          style={{ padding: '2rem' }}
         >
-          <div className='form-row'>
-            <div className='input-group'>
-              <label>Seleccionar Equipo</label>
-              <select
-                name='equipo_id'
-                value={formData.equipo_id}
-                onChange={handleChange}
-                required
-                style={{ padding: '12px' }}
-              >
-                <option value=''>-- Seleccione --</option>
-                {equipos.map((eq) => (
-                  <option
-                    key={eq.id}
-                    value={eq.id}
-                  >
-                    {eq.marca} {eq.modelo} - S/N: {eq.serie}
-                  </option>
-                ))}
-              </select>
+          <form
+            className='equipo-form'
+            onSubmit={handleSubmit}
+          >
+            <div className='form-row'>
+              <div className='input-group'>
+                <label>Seleccionar Equipo</label>
+                <select
+                  name='equipo_id'
+                  value={formData.equipo_id}
+                  onChange={handleChange}
+                  required
+                  style={{ padding: '12px' }}
+                >
+                  <option value=''>-- Seleccione --</option>
+                  {equipos.map((eq) => (
+                    <option
+                      key={eq.id}
+                      value={eq.id}
+                    >
+                      {eq.marca} {eq.modelo} - S/N: {eq.serie}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
-
-          <div className='form-row'>
-            <div className='input-group'>
-              <label>Colaborador</label>
-              <select
-                name='empleado_id'
-                value={formData.empleado_id}
-                onChange={handleChange}
-                required
-                style={{ padding: '12px' }}
-              >
-                <option value=''>-- Seleccione --</option>
-                {usuarios.map((user) => (
-                  <option
-                    key={user.id}
-                    value={user.id}
-                  >
-                    {user.nombres} {user.apellidos}
-                  </option>
-                ))}
-              </select>
+            <div className='form-row'>
+              <div className='input-group'>
+                <label>Colaborador</label>
+                <select
+                  name='empleado_id'
+                  value={formData.empleado_id}
+                  onChange={handleChange}
+                  required
+                  style={{ padding: '12px' }}
+                >
+                  <option value=''>-- Seleccione --</option>
+                  {usuarios.map((user) => (
+                    <option
+                      key={user.id}
+                      value={user.id}
+                    >
+                      {user.nombres} {user.apellidos}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
-
-          <div className='form-row'>
-            <div
-              className='input-group'
+            <div className='form-row'>
+              <div
+                className='input-group'
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: '10px',
+                }}
+              >
+                <input
+                  type='checkbox'
+                  name='cargador'
+                  checked={formData.cargador}
+                  onChange={handleChange}
+                  style={{ width: '20px', height: '20px' }}
+                />
+                <label style={{ margin: 0 }}>¿Incluye cargador?</label>
+              </div>
+            </div>
+            <button
+              type='submit'
+              className='btn-submit'
               style={{
-                flexDirection: 'row',
+                display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '10px',
               }}
             >
-              <input
-                type='checkbox'
-                name='cargador'
-                checked={formData.cargador}
-                onChange={handleChange}
-                style={{ width: '20px', height: '20px' }}
-              />
-              <label style={{ margin: 0 }}>¿Incluye cargador?</label>
-            </div>
-          </div>
+              <FaPaperPlane /> Guardar y Ver Acta
+            </button>
+          </form>
+        </div>
 
-          <button
-            type='submit'
-            className='btn-submit'
+        {/* COLUMNA DERECHA: TABLA DE ÚLTIMAS ENTREGAS */}
+        <div
+          className='table-container'
+          style={{ height: 'fit-content' }}
+        >
+          <h3
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px',
+              padding: '1rem',
+              borderBottom: '1px solid #eee',
+              color: '#64748b',
             }}
           >
-            <FaPaperPlane /> Generar Acta
-          </button>
-        </form>
+            <FaHistory style={{ marginRight: '8px' }} /> Últimas Entregas
+          </h3>
+          {historialEntregas.length === 0 ? (
+            <div className='no-data'>Sin movimientos recientes</div>
+          ) : (
+            <table style={{ fontSize: '0.85rem' }}>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Equipo</th>
+                  <th>Colaborador</th>
+                </tr>
+              </thead>
+              <tbody>
+                {historialEntregas.map((mov) => (
+                  <tr key={mov.id}>
+                    <td>
+                      {new Date(mov.fecha_movimiento).toLocaleDateString()}
+                    </td>
+                    <td>
+                      {mov.modelo} <br />
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                        {mov.serie}
+                      </span>
+                    </td>
+                    <td>
+                      {mov.empleado_nombre} {mov.empleado_apellido}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
+
+      {/* MODAL PREVIEW */}
+      <PdfModal
+        isOpen={showPdfModal}
+        onClose={() => setShowPdfModal(false)}
+        pdfUrl={pdfUrl}
+        title='Vista Previa del Acta'
+      />
     </div>
   );
 };
