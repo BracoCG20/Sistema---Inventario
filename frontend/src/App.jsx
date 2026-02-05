@@ -9,6 +9,9 @@ import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './layout/MainLayout';
 
 import Equipos from './pages/Equipos/Equipos';
+import Usuarios from './pages/Usuarios/Usuarios';
+import Entrega from './pages/Entrega/Entrega';
+
 // Páginas temporales (Placeholder) para probar la navegación
 const Dashboard = () => <h1>Dashboard (Resumen) 📊</h1>;
 
@@ -41,6 +44,14 @@ function App() {
               <Route
                 path='/equipos'
                 element={<Equipos />}
+              />
+              <Route
+                path='/usuarios'
+                element={<Usuarios />}
+              />
+              <Route
+                path='/entrega'
+                element={<Entrega />}
               />
               {/* Aquí agregaremos /usuarios, /entregas, etc. */}
             </Route>

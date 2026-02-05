@@ -17,11 +17,11 @@ $success: #10b981;
   background: rgba(255, 255, 255, 0.75); // Blanco translúcido
   backdrop-filter: blur(16px); // Blur fuerte
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.6); // Borde blanco sutil
+  border: 1px solid rgba(255, 255, 255, 0.048); // Borde blanco sutil
   box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -1px rgba(0, 0, 0, 0.06); // Sombra suave para dar profundidad
-  border-radius: 16px;
+  border-radius: 10px;
   color: $text-main;
 }
 
