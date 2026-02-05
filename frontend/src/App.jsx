@@ -11,6 +11,7 @@ import MainLayout from './layout/MainLayout';
 import Equipos from './pages/Equipos/Equipos';
 import Usuarios from './pages/Usuarios/Usuarios';
 import Entrega from './pages/Entrega/Entrega';
+import Devolucion from './pages/Devolucion/Devolucion';
 
 // Páginas temporales (Placeholder) para probar la navegación
 const Dashboard = () => <h1>Dashboard (Resumen) 📊</h1>;
@@ -52,6 +53,10 @@ function App() {
               <Route
                 path='/entrega'
                 element={<Entrega />}
+              />
+              <Route
+                path='/devolucion'
+                element={<Devolucion />}
               />
               {/* Aquí agregaremos /usuarios, /entregas, etc. */}
             </Route>
