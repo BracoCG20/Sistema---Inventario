@@ -26,19 +26,44 @@ $success: #10b981;
 }
 
 @mixin glass-input {
+  width: 100%;
   background: rgba(255, 255, 255, 0.9);
-  border: 1px solid #cbd5e1; // Borde gris suave
+  border: 1px solid #cbd5e1;
   color: $text-main;
-  padding: 10px 15px;
-  border-radius: 8px;
+  padding: 12px 15px; // Un poco más de padding para que se vea cómodo
+  border-radius: 10px; // Bordes más redondeados
   outline: none;
   transition: all 0.3s ease;
-  width: 100%;
+  font-size: 0.95rem;
+
+  // Sombra suave interna
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 
   &:focus {
     border-color: $primary;
     background: #ffffff;
-    box-shadow: 0 0 0 3px rgba($primary, 0.1);
+    box-shadow: 0 0 0 3px rgba($primary, 0.15); // Halo de luz al enfocar
+  }
+
+  // --- ESTILOS ESPECÍFICOS PARA SELECT ---
+  // Esto quita el estilo feo por defecto del navegador
+  &[type='select'],
+  & {
+    appearance: none; // Estándar moderno
+    -webkit-appearance: none; // Safari/Chrome antiguos
+    -moz-appearance: none; // Firefox
+  }
+
+  // Si es un tag <select>, le agregamos la flecha personalizada
+  @at-root select#{&} {
+    padding-right: 2.5rem; // Espacio para que el texto no tape la flecha
+    cursor: pointer;
+
+    // Flecha SVG codificada (Color Gris Oscuro)
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 16px 12px;
   }
 }
 

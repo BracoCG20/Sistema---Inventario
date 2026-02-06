@@ -1,145 +1,175 @@
 @use '../../styles/variables' as v;
-@use 'sass:color';
 
 .sidebar {
-  // Heredamos el efecto cristal, pero ajustamos para que sea una barra lateral
-  @include v.glass-card;
-  height: 95vh; // No pegado al borde total para que flote
-  margin: 2.5vh 0 2.5vh 1.5rem; // Margen para dar efecto flotante
-  display: flex;
-  flex-direction: column;
-  transition: width 0.3s ease;
-  overflow: hidden;
-  z-index: 100;
-  border-radius: 20px;
-
-  // Estados de ancho
-  &.expanded {
-    width: 260px;
-  }
+  // Ancho variable según estado
+  width: 260px;
   &.collapsed {
     width: 80px;
-  }
+  } // Ancho reducido
 
-  // Cabecera del Sidebar (Logo y Botón Toggle)
-  .sidebar-header {
+  height: 100vh;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(15px);
+  border-right: 1px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 1rem;
+  transition: width 0.3s ease; // Transición suave
+  position: relative; // Para posicionar el toggle button
+
+  // BOTÓN TOGGLE (HAMBURGUESA)
+  .toggle-btn {
+    position: absolute;
+    top: 15px;
+    right: -15px; // Flota un poco hacia afuera o dentro
+    width: 30px;
+    height: 30px;
+    background: v.$primary;
+    color: white;
+    border-radius: 50%;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    font-size: 0.8rem;
+    z-index: 100;
+    transition: transform 0.2s;
 
-    h3 {
-      font-size: 1.2rem;
-      color: v.$primary;
-      font-weight: 800;
-      white-space: nowrap; // Evita que el texto salte de línea
-      overflow: hidden;
-      transition: opacity 0.2s;
+    &:hover {
+      transform: scale(1.1);
     }
+  }
 
-    .toggle-btn {
-      background: none;
-      border: none;
-      color: v.$text-muted;
-      cursor: pointer;
-      font-size: 1.5rem;
-      display: flex;
-      align-items: center;
-      transition: color 0.2s;
+  // LOGO
+  .logo-container {
+    margin-bottom: 2rem;
+    text-align: center;
+    height: 60px; // Altura fija para evitar saltos
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
 
-      &:hover {
-        color: v.$primary;
+    img {
+      max-width: 120px;
+      transition: all 0.3s ease;
+
+      &.small-logo {
+        max-width: 40px; // Logo pequeño
       }
     }
   }
 
-  // Lista de menús
   nav {
-    flex: 1; // Ocupa el espacio disponible
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    padding: 0 1rem;
+    gap: 0.8rem;
+    flex: 1;
 
     .nav-item {
       display: flex;
       align-items: center;
-      padding: 12px;
-      text-decoration: none;
+      padding: 12px 15px; // Padding ajustado
       color: v.$text-muted;
+      text-decoration: none;
       border-radius: 12px;
-      transition: all 0.3s ease;
-      white-space: nowrap;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      white-space: nowrap; // Evita que el texto salte línea
+      overflow: hidden; // Oculta lo que sobre
 
       .icon {
-        font-size: 1.4rem;
-        min-width: 24px; // Asegura espacio fijo para el icono
+        min-width: 30px; // Ancho fijo para el icono
+        font-size: 1.3rem;
+        display: flex;
+        justify-content: center;
       }
 
       .label {
-        margin-left: 1rem;
-        font-size: 0.95rem;
-        font-weight: 500;
+        margin-left: 10px;
+        opacity: 1;
+        transition: opacity 0.2s;
       }
 
-      // Estado Hover
       &:hover {
-        background: rgba(255, 255, 255, 0.5);
+        background: rgba(255, 255, 255, 0.6);
         color: v.$primary;
-        transform: translateX(3px);
       }
 
-      // Estado Activo (Página actual)
       &.active {
-        background: linear-gradient(90deg, rgba(v.$primary, 0.1), transparent);
+        background: v.$white;
         color: v.$primary;
-        border-left: 3px solid v.$primary;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      }
 
-        .icon {
-          color: v.$primary;
+      // COLORES PERSONALIZADOS (Se mantienen incluso colapsado)
+      &.entrega {
+        color: #059669;
+        &.active {
+          background: #10b981;
+          color: white;
+        }
+      }
+      &.devolucion {
+        color: #b91c1c;
+        &.active {
+          background: #ef4444;
+          color: white;
         }
       }
     }
   }
 
-  // Footer del Sidebar (Logout)
-  .sidebar-footer {
-    padding: 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.5);
+  // FOOTER Y LOGOUT
+  .footer-actions {
+    margin-top: auto;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding-top: 1rem;
 
     .logout-btn {
       width: 100%;
+      background: transparent;
+      border: 1px solid rgba(239, 68, 68, 0.2); // Borde rojo suave
+      color: #ef4444;
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center; // Centrado si está colapsado
-      gap: 0.8rem;
-      background: rgba(v.$danger, 0.1);
-      color: v.$danger;
-      border: none;
-      padding: 12px;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: all 0.2s;
+      gap: 10px;
+      transition: all 0.3s;
+      white-space: nowrap;
+      overflow: hidden;
 
       &:hover {
-        background: v.$danger;
+        background: #ef4444;
         color: white;
       }
+
+      .icon {
+        font-size: 1.2rem;
+      }
+    }
+
+    .copyright {
+      text-align: center;
+      font-size: 0.7rem;
+      color: v.$text-muted;
+      margin-top: 10px;
     }
   }
-}
 
-// Ocultar textos cuando está colapsado
-.sidebar.collapsed {
-  .sidebar-header h3,
-  .nav-item .label,
-  .logout-btn span {
-    display: none;
-  }
-
-  .sidebar-header {
-    justify-content: center;
+  // Ajuste para cuando está colapsado
+  &.collapsed {
+    .footer-actions {
+      .logout-btn {
+        border: none; // Sin borde cuando es solo icono
+        justify-content: center;
+        padding: 0;
+        height: 40px;
+      }
+    }
   }
 }

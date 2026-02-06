@@ -1,9 +1,14 @@
-import { createContext, useState, useEffect } from 'react';
-import { jwtDecode } from 'jwt-decode'; // Ojo: importación nombrada { jwtDecode }
+import { createContext, useState, useEffect, useContext } from 'react'; // 1. Agregado useContext
+import { jwtDecode } from 'jwt-decode';
 import { toast } from 'react-toastify';
 import api from '../services/api';
 
 export const AuthContext = createContext();
+
+// 2. IMPORTANTE: Agregamos el hook personalizado para que Sidebar.jsx pueda usarlo
+export const useAuth = () => {
+  return useContext(AuthContext);
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -31,7 +36,7 @@ export const AuthProvider = ({ children }) => {
 
       // Guardar token y estado
       localStorage.setItem('token', token);
-      setUser(user); // O decodificar el token si prefieres
+      setUser(user);
 
       toast.success(`Bienvenido, ${user.nombre}`);
       return true;
@@ -46,6 +51,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     setUser(null);
     toast.info('Sesión cerrada');
+    // Opcional: Redirigir al login si es necesario
+    // window.location.href = '/login';
   };
 
   return (

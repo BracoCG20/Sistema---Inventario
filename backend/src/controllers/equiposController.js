@@ -16,6 +16,7 @@ const getEquipos = async (req, res) => {
 // 2. Crear un nuevo equipo
 const createEquipo = async (req, res) => {
   // Desestructuramos lo que envía el Frontend
+  // Agregamos fecha_compra al destructuring
   const { marca, modelo, serie, estado, especificaciones, fecha_compra } =
     req.body;
 
@@ -31,16 +32,17 @@ const createEquipo = async (req, res) => {
 
     // Insertamos
     // Nota: 'especificaciones' debe llegar como un objeto JSON desde el frontend
+    // Agregamos la columna fecha_compra
     const newEquipo = await db.query(
       `INSERT INTO equipos (marca, modelo, serie, estado, especificaciones, fecha_compra) 
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+              VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
       [
         marca,
         modelo,
         serie,
         estado || 'operativo',
         especificaciones,
-        fecha_compra,
+        fecha_compra || null, // Si viene vacío, guarda NULL
       ],
     );
 
@@ -54,14 +56,25 @@ const createEquipo = async (req, res) => {
   }
 };
 
+// 3. Actualizar Equipo
 const updateEquipo = async (req, res) => {
   const { id } = req.params;
-  const { marca, modelo, serie, estado, especificaciones } = req.body;
+  // Agregamos fecha_compra al update
+  const { marca, modelo, serie, estado, especificaciones, fecha_compra } =
+    req.body;
 
   try {
     await db.query(
-      'UPDATE equipos SET marca=$1, modelo=$2, serie=$3, estado=$4, especificaciones=$5 WHERE id=$6',
-      [marca, modelo, serie, estado, especificaciones, id],
+      'UPDATE equipos SET marca=$1, modelo=$2, serie=$3, estado=$4, especificaciones=$5, fecha_compra=$6 WHERE id=$7',
+      [
+        marca,
+        modelo,
+        serie,
+        estado,
+        especificaciones,
+        fecha_compra || null,
+        id,
+      ],
     );
     res.json({ message: 'Equipo actualizado' });
   } catch (error) {
@@ -70,6 +83,7 @@ const updateEquipo = async (req, res) => {
   }
 };
 
+// 4. Eliminar Equipo
 const deleteEquipo = async (req, res) => {
   const { id } = req.params;
   try {

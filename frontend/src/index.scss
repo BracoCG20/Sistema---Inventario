@@ -42,3 +42,28 @@ body {
     background: #94a3b8;
   }
 }
+
+select {
+  // Asegura que herede la fuente correcta
+  font-family: 'Inter', system-ui, sans-serif;
+
+  // Estilo de las opciones internas (Firefox y algunos navegadores modernos)
+  option {
+    padding: 10px;
+    background-color: white;
+    color: v.$text-main;
+    font-size: 1rem;
+
+    &:hover,
+    &:checked {
+      background-color: rgba(v.$primary, 0.1) !important;
+      color: v.$primary !important;
+    }
+  }
+}
+
+// Corrección para Placeholder en Selects (la primera opción vacía o "-- Seleccione --")
+select:invalid,
+select option[value=''] {
+  color: v.$text-muted;
+}

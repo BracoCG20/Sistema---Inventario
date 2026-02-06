@@ -27,7 +27,8 @@
     }
 
     input,
-    select {
+    select,
+    textarea {
       @include v.glass-input;
     }
   }

@@ -3,23 +3,22 @@ import api from '../../services/api';
 import { toast } from 'react-toastify';
 import { jsPDF } from 'jspdf';
 import { FaPaperPlane, FaHistory } from 'react-icons/fa';
-import PdfModal from '../../components/Modal/PdfModal'; // <--- NUEVO IMPORT
+import PdfModal from '../../components/Modal/PdfModal';
+import CustomSelect from '../../components/Select/CustomSelect';
 
-// ESTILOS
+// Estilos e Imágenes
 import '../Equipos/FormStyles.scss';
 import '../Equipos/Equipos.scss';
-
-// IMÁGENES
 import logoImg from '../../assets/logo_gruposp.png';
 import firmaImg from '../../assets/firma_pierina.png';
 
 const Entrega = () => {
   const [equipos, setEquipos] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
-  const [historialEntregas, setHistorialEntregas] = useState([]); // <--- NUEVO ESTADO PARA TABLA
+  const [historialEntregas, setHistorialEntregas] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Estados para PDF Preview
+  // Estados PDF Preview
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [pdfUrl, setPdfUrl] = useState('');
 
@@ -30,29 +29,30 @@ const Entrega = () => {
     observaciones: '',
   });
 
-  // Cargar datos iniciales
   const fetchData = async () => {
     try {
       const [resEquipos, resUsuarios, resHistorial] = await Promise.all([
         api.get('/equipos'),
         api.get('/usuarios'),
-        api.get('/historial'), // Traemos historial para la tabla
+        api.get('/historial'),
       ]);
 
+      // Equipos Disponibles y Operativos
       const disponibles = resEquipos.data.filter(
         (e) => e.estado === 'operativo' && e.disponible === true,
       );
 
-      // Filtramos solo entregas recientes
+      // Últimas 10 entregas
       const entregasRecientes = resHistorial.data
         .filter((h) => h.tipo === 'entrega')
         .sort(
           (a, b) => new Date(b.fecha_movimiento) - new Date(a.fecha_movimiento),
         )
-        .slice(0, 10); // Solo las últimas 5
+        .slice(0, 10);
 
       setEquipos(disponibles);
-      setUsuarios(resUsuarios.data);
+      const usuariosActivos = resUsuarios.data.filter((u) => u.activo === true); // <--- FILTRO IMPORTANTE
+      setUsuarios(usuariosActivos);
       setHistorialEntregas(entregasRecientes);
     } catch (error) {
       console.error(error);
@@ -66,53 +66,54 @@ const Entrega = () => {
     fetchData();
   }, []);
 
+  // Opciones para CustomSelect
+  const equiposOptions = equipos.map((eq) => ({
+    value: eq.id,
+    label: `${eq.marca} ${eq.modelo} - S/N: ${eq.serie}`,
+  }));
+
+  const usuariosOptions = usuarios.map((usr) => ({
+    value: usr.id,
+    label: `${usr.nombres} ${usr.apellidos}`,
+  }));
+
   const handleChange = (e) => {
     const value =
       e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setFormData({ ...formData, [e.target.name]: value });
   };
 
-  // --- GENERADOR PDF (Retorna URL, NO descarga) ---
   const generarPDFBlob = (equipo, usuario) => {
     const doc = new jsPDF();
     const margenIzq = 25;
     const margenDer = 25;
     const anchoPagina = 210;
     const anchoUtil = anchoPagina - margenIzq - margenDer;
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
     let y = 20;
 
-    // LOGO
     doc.addImage(logoImg, 'PNG', margenIzq, 10, 40, 15);
     y += 20;
 
-    // TÍTULO
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     const titulo = 'ACTA DE ENTREGA DE EQUIPOS';
-    const anchoTexto = doc.getTextWidth(titulo);
-    const xTitulo = (anchoPagina - anchoTexto) / 2;
+    const xTitulo = (anchoPagina - doc.getTextWidth(titulo)) / 2;
     doc.text(titulo, xTitulo, y);
-    doc.line(xTitulo, y + 1, xTitulo + anchoTexto, y + 1);
+    doc.line(xTitulo, y + 1, xTitulo + doc.getTextWidth(titulo), y + 1);
     y += 15;
 
-    // FECHA
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
     doc.text('Fecha de entrega:', margenIzq, y);
     doc.setFont('helvetica', 'normal');
-    const fechaActual = new Date().toLocaleDateString();
-    doc.text(fechaActual, margenIzq + 32, y);
+    doc.text(new Date().toLocaleDateString(), margenIzq + 32, y);
     y += 10;
 
-    // INTRODUCCIÓN
+    // Intro con Negritas
+    const prefijo = usuario.genero === 'mujer' ? 'a la Srta.' : 'al Sr.';
+
+    // INTRODUCCIÓN DINÁMICA
     const parts = [
-      {
-        text: 'En Magdalena, se hace entrega al(la) señor(a) ',
-        type: 'normal',
-      },
+      { text: `En Magdalena, se hace entrega ${prefijo} `, type: 'normal' }, // <--- AQUÍ SE USA LA VARIABLE
       { text: `${usuario.nombres} ${usuario.apellidos}`, type: 'bold' },
       { text: ' identificado (a) con DNI/PTP/C.E N° ', type: 'normal' },
       { text: `${usuario.dni}`, type: 'bold' },
@@ -120,158 +121,121 @@ const Entrega = () => {
     ];
 
     let currentX = margenIzq;
-    const limitX = margenIzq + anchoUtil;
-    const leading = 5;
-
     parts.forEach((part) => {
       doc.setFont('helvetica', part.type);
-      const tokens = part.text.match(/(\S+|\s+)/g) || [];
-      tokens.forEach((token) => {
-        const tokenWidth = doc.getTextWidth(token);
-        if (currentX + tokenWidth > limitX) {
+      part.text.match(/(\S+|\s+)/g).forEach((token) => {
+        if (currentX + doc.getTextWidth(token) > margenIzq + anchoUtil) {
           if (!/^\s+$/.test(token)) {
             currentX = margenIzq;
-            y += leading;
+            y += 5;
           }
         }
-        if (currentX === margenIzq && /^\s+$/.test(token)) return;
-        doc.text(token, currentX, y);
-        currentX += tokenWidth;
+        if (!(currentX === margenIzq && /^\s+$/.test(token))) {
+          doc.text(token, currentX, y);
+          currentX += doc.getTextWidth(token);
+        }
       });
     });
-    y += leading + 8;
+    y += 13;
 
-    // TABLA
+    // Tabla
     const altoFila = 8;
-    const altoFilaDatos = 12;
-    const col1W = 50;
-    const col2W = 70;
-    const col3W = 40;
-    const xCol1 = margenIzq;
-    const xCol2 = margenIzq + col1W;
-    const xCol3 = margenIzq + col1W + col2W;
+    const altoData = 12;
+    const col1 = margenIzq;
+    const col2 = margenIzq + 50;
+    const col3 = margenIzq + 120;
 
     doc.setLineWidth(0.1);
     doc.setFont('helvetica', 'bold');
     doc.rect(margenIzq, y, anchoUtil, altoFila);
-    doc.line(xCol2, y, xCol2, y + altoFila);
-    doc.line(xCol3, y, xCol3, y + altoFila);
-    doc.text('ITEMS', xCol1 + 2, y + 5);
-    doc.text('DESCRIPCIÓN', xCol2 + 2, y + 5);
-    doc.text('CANTIDAD', xCol3 + 2, y + 5);
+    doc.line(col2, y, col2, y + altoFila);
+    doc.line(col3, y, col3, y + altoFila);
+    doc.text('ITEMS', col1 + 2, y + 5);
+    doc.text('DESCRIPCIÓN', col2 + 2, y + 5);
+    doc.text('CANTIDAD', col3 + 2, y + 5);
     y += altoFila;
 
     doc.setFont('helvetica', 'normal');
-    doc.rect(margenIzq, y, anchoUtil, altoFilaDatos);
-    doc.line(xCol2, y, xCol2, y + altoFilaDatos);
-    doc.line(xCol3, y, xCol3, y + altoFilaDatos);
-    doc.text('Laptop y cargador', xCol1 + 2, y + 7);
-    doc.text(`código de equipo: ${equipo.serie}`, xCol2 + 2, y + 7);
-    doc.text('1', xCol3 + col3W / 2, y + 7, { align: 'center' });
-    y += altoFilaDatos + 10;
+    doc.rect(margenIzq, y, anchoUtil, altoData);
+    doc.line(col2, y, col2, y + altoData);
+    doc.line(col3, y, col3, y + altoData);
+    doc.text('Laptop y cargador', col1 + 2, y + 7);
+    doc.text(`Código: ${equipo.serie}`, col2 + 2, y + 7);
+    doc.text('1', col3 + 20, y + 7, { align: 'center' });
+    y += altoData + 10;
 
-    // LEGAL
-    const parrafo1 =
-      'Por falta de equipos personales para trabajar se hace entrega de esta acta la cual se mantendrá hasta diciembre. Finalizado el plazo el Trabajador deberá devolver el equipo. En cualquier escenario se obliga a devolver estos equipos a solo el requerimiento del empleador o al término del periodo de trabajo.';
-    const lineasP1 = doc.splitTextToSize(parrafo1, anchoUtil);
-    doc.text(lineasP1, margenIzq, y);
-    y += lineasP1.length * 4 + 5;
-
-    doc.setFont('helvetica', 'bold');
-    doc.text(
+    // Legal
+    const legalText = [
+      'Por falta de equipos personales para trabajar se hace entrega de esta acta la cual se mantendrá hasta diciembre. Finalizado el plazo el Trabajador deberá devolver el equipo.',
       'Al recibir estos elementos de trabajo, me comprometo a:',
-      margenIzq,
-      y,
-    );
-    y += 6;
-    doc.setFont('helvetica', 'normal');
-
-    const compromisos = [
-      'Utilizar el equipo para los fines correspondientes a su labor; como también de cuidarla y mantenerla en buenas condiciones.',
-      'Por lo mismo, me hago responsable en caso de pérdida o robo o cualquier otro daño que pueda sufrir el equipo durante mi periodo de trabajo.',
-      'Comunicar inmediatamente a mi empleador si hubiera algún inconveniente con el equipo o si hubiera sufrido algún daño.',
-      'Debo recoger y devolver el equipo al iniciar y terminar mi relación laboral; bajo previa coordinación con mi empleador.',
-      'Toda devolución del equipo debe ser en oficina por cuenta propia del usuario y bajo coordinación del encargado de TI.',
+      '• Utilizar el equipo para los fines correspondientes a su labor.',
+      '• Por lo mismo, me hago responsable en caso de pérdida o robo.',
+      '• Comunicar inmediatamente a mi empleador si hubiera algún inconveniente.',
+      '• Debo recoger y devolver el equipo al iniciar y terminar mi relación laboral.',
+      '• Toda devolución del equipo debe ser en oficina por cuenta propia.',
     ];
-    compromisos.forEach((item) => {
-      doc.text('•', margenIzq + 5, y);
-      const lineasItem = doc.splitTextToSize(item, anchoUtil - 10);
-      doc.text(lineasItem, margenIzq + 10, y);
-      y += lineasItem.length * 4 + 2;
+    legalText.forEach((txt) => {
+      const lines = doc.splitTextToSize(txt, anchoUtil);
+      doc.text(lines, margenIzq, y);
+      y += lines.length * 5 + 2;
     });
-    y += 3;
-    const parrafoFinal =
-      'El Empleador realizará la entrega del equipo mostrando el estado correcto de la misma y de acuerdo a esto se firma esta acta de entrega.';
-    const lineasPF = doc.splitTextToSize(parrafoFinal, anchoUtil);
-    doc.text(lineasPF, margenIzq, y);
 
-    // FIRMAS
-    const yFirmas = y + 35 > 250 ? 250 : y + 35;
-    doc.line(margenIzq, yFirmas, margenIzq + 65, yFirmas);
+    // Firmas
+    const yFirma = 250;
+    doc.line(margenIzq, yFirma, margenIzq + 60, yFirma);
     doc.setFont('helvetica', 'bold');
-    doc.text(`DNI/PTP/C.E N° ${usuario.dni}`, margenIzq, yFirmas + 5);
-    doc.text('EL/LA TRABAJADOR/A', margenIzq + 8, yFirmas + 10);
+    doc.text(`DNI: ${usuario.dni}`, margenIzq, yFirma + 5);
+    doc.text('EL/LA TRABAJADOR/A', margenIzq, yFirma + 10);
 
     const xDer = 120;
-    doc.addImage(firmaImg, 'PNG', xDer + 10, yFirmas - 25, 40, 20);
-    doc.line(xDer, yFirmas, xDer + 65, yFirmas);
-    doc.text('PIERINA ALARCON DILLERVA', xDer, yFirmas + 5);
-    doc.text('GTH', xDer + 25, yFirmas + 10);
+    doc.addImage(firmaImg, 'PNG', xDer + 10, yFirma - 25, 40, 20);
+    doc.line(xDer, yFirma, xDer + 60, yFirma);
+    doc.text('PIERINA ALARCON DILLERVA', xDer, yFirma + 5);
+    doc.text('GTH', xDer + 20, yFirma + 10);
 
-    // IMPORTANTE: Devolver URL Blob
     return doc.output('bloburl');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.equipo_id || !formData.empleado_id) {
+    if (!formData.equipo_id || !formData.empleado_id)
       return toast.warning('Seleccione equipo y usuario');
-    }
 
     try {
       await api.post('/movimientos/entrega', {
         ...formData,
         fecha: new Date().toISOString(),
       });
-
       toast.success('Entrega registrada');
 
-      const equipoSelect = equipos.find((e) => e.id == formData.equipo_id);
-      const userSelect = usuarios.find((u) => u.id == formData.empleado_id);
+      const eq = equipos.find((e) => e.id === formData.equipo_id);
+      const us = usuarios.find((u) => u.id === formData.empleado_id);
 
-      // 1. Generar URL del PDF
-      const url = generarPDFBlob(equipoSelect, userSelect);
-      setPdfUrl(url);
-
-      // 2. Abrir Modal
+      setPdfUrl(generarPDFBlob(eq, us));
       setShowPdfModal(true);
-
-      // 3. Limpiar formulario y recargar datos
       setFormData({
         equipo_id: '',
         empleado_id: '',
         cargador: true,
         observaciones: '',
       });
-      fetchData(); // Recarga la tabla y quita el equipo de la lista
+      fetchData();
     } catch (error) {
       console.error(error);
-      toast.error('Error al registrar entrega');
+      toast.error('Error al registrar');
     }
   };
 
-  if (loading) return <div style={{ padding: '2rem' }}>Cargando datos...</div>;
+  if (loading) return <div>Cargando...</div>;
 
   return (
     <div className='equipos-container'>
       <div className='page-header'>
         <h1>Registrar Entrega</h1>
       </div>
-
       <div
         style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}
       >
-        {/* COLUMNA IZQUIERDA: FORMULARIO */}
         <div
           className='table-container'
           style={{ padding: '2rem' }}
@@ -280,75 +244,58 @@ const Entrega = () => {
             className='equipo-form'
             onSubmit={handleSubmit}
           >
-            <div className='form-row'>
-              <div className='input-group'>
-                <label>Seleccionar Equipo</label>
-                <select
-                  name='equipo_id'
-                  value={formData.equipo_id}
-                  onChange={handleChange}
-                  required
-                  style={{ padding: '12px' }}
-                >
-                  <option value=''>-- Seleccione --</option>
-                  {equipos.map((eq) => (
-                    <option
-                      key={eq.id}
-                      value={eq.id}
-                    >
-                      {eq.marca} {eq.modelo} - S/N: {eq.serie}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className='input-group'>
+              <label>Equipo (Disponibles)</label>
+              <CustomSelect
+                options={equiposOptions}
+                value={equiposOptions.find(
+                  (op) => op.value === formData.equipo_id,
+                )}
+                onChange={(op) =>
+                  setFormData({ ...formData, equipo_id: op?.value || '' })
+                }
+                placeholder='Buscar equipo...'
+              />
             </div>
-            <div className='form-row'>
-              <div className='input-group'>
-                <label>Colaborador</label>
-                <select
-                  name='empleado_id'
-                  value={formData.empleado_id}
-                  onChange={handleChange}
-                  required
-                  style={{ padding: '12px' }}
-                >
-                  <option value=''>-- Seleccione --</option>
-                  {usuarios.map((user) => (
-                    <option
-                      key={user.id}
-                      value={user.id}
-                    >
-                      {user.nombres} {user.apellidos}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div
+              className='input-group'
+              style={{ marginTop: '1rem' }}
+            >
+              <label>Colaborador</label>
+              <CustomSelect
+                options={usuariosOptions}
+                value={usuariosOptions.find(
+                  (op) => op.value === formData.empleado_id,
+                )}
+                onChange={(op) =>
+                  setFormData({ ...formData, empleado_id: op?.value || '' })
+                }
+                placeholder='Buscar colaborador...'
+              />
             </div>
-            <div className='form-row'>
+            <div
+              className='form-row'
+              style={{ marginTop: '1rem' }}
+            >
               <div
                 className='input-group'
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: '10px',
-                }}
+                style={{ flexDirection: 'row', gap: '10px' }}
               >
                 <input
                   type='checkbox'
                   name='cargador'
                   checked={formData.cargador}
                   onChange={handleChange}
-                  style={{ width: '20px', height: '20px' }}
                 />
-                <label style={{ margin: 0 }}>¿Incluye cargador?</label>
+                <label>¿Incluye cargador?</label>
               </div>
             </div>
             <button
               type='submit'
               className='btn-submit'
               style={{
+                marginTop: '1rem',
                 display: 'flex',
-                alignItems: 'center',
                 justifyContent: 'center',
                 gap: '10px',
               }}
@@ -357,61 +304,44 @@ const Entrega = () => {
             </button>
           </form>
         </div>
-
-        {/* COLUMNA DERECHA: TABLA DE ÚLTIMAS ENTREGAS */}
         <div
           className='table-container'
           style={{ height: 'fit-content' }}
         >
-          <h3
-            style={{
-              padding: '1rem',
-              borderBottom: '1px solid #eee',
-              color: '#64748b',
-            }}
-          >
-            <FaHistory style={{ marginRight: '8px' }} /> Últimas Entregas
+          <h3 style={{ padding: '1rem', borderBottom: '1px solid #eee' }}>
+            <FaHistory /> Últimas Entregas
           </h3>
-          {historialEntregas.length === 0 ? (
-            <div className='no-data'>Sin movimientos recientes</div>
-          ) : (
-            <table style={{ fontSize: '0.85rem' }}>
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Equipo</th>
-                  <th>Colaborador</th>
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Equipo</th>
+                <th>Colaborador</th>
+              </tr>
+            </thead>
+            <tbody>
+              {historialEntregas.map((h) => (
+                <tr key={h.id}>
+                  <td>{new Date(h.fecha_movimiento).toLocaleDateString()}</td>
+                  <td>
+                    {h.modelo}
+                    <br />
+                    <small>{h.serie}</small>
+                  </td>
+                  <td>
+                    {h.empleado_nombre} {h.empleado_apellido}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {historialEntregas.map((mov) => (
-                  <tr key={mov.id}>
-                    <td>
-                      {new Date(mov.fecha_movimiento).toLocaleDateString()}
-                    </td>
-                    <td>
-                      {mov.modelo} <br />
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                        {mov.serie}
-                      </span>
-                    </td>
-                    <td>
-                      {mov.empleado_nombre} {mov.empleado_apellido}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
-
-      {/* MODAL PREVIEW */}
       <PdfModal
         isOpen={showPdfModal}
         onClose={() => setShowPdfModal(false)}
         pdfUrl={pdfUrl}
-        title='Vista Previa del Acta'
+        title='Vista Previa Acta'
       />
     </div>
   );

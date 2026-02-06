@@ -4,20 +4,32 @@ import { toast } from 'react-toastify';
 import api from '../../services/api';
 import './FormStyles.scss';
 
-// Recibimos 'equipoToEdit' (datos del equipo si vamos a editar)
+// Importamos el Select personalizado
+import CustomSelect from '../../components/Select/CustomSelect';
+
 const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
-  // Estado inicial vacío
+  // Estado inicial
+  // Agregamos fecha_compra al estado
   const [formData, setFormData] = useState({
     marca: '',
     modelo: '',
     serie: '',
     estado: 'operativo',
+    fecha_compra: '',
   });
 
+  // Estado para especificaciones dinámicas
   const [specsList, setSpecsList] = useState([
     { key: 'Ram', value: '' },
     { key: 'Procesador', value: '' },
   ]);
+
+  // Opciones para el Select de Estado
+  const estadoOptions = [
+    { value: 'operativo', label: 'Operativo' },
+    { value: 'mantenimiento', label: 'Mantenimiento' },
+    { value: 'malogrado', label: 'Malogrado' },
+  ];
 
   // EFECTO: Si hay un equipo para editar, rellenamos el formulario
   useEffect(() => {
@@ -27,16 +39,16 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
         modelo: equipoToEdit.modelo,
         serie: equipoToEdit.serie,
         estado: equipoToEdit.estado,
+        // Formateamos la fecha si existe (cortamos la parte 'T00:00:00')
+        fecha_compra: equipoToEdit.fecha_compra
+          ? equipoToEdit.fecha_compra.split('T')[0]
+          : '',
       });
 
       // Convertir el objeto JSON de specs a nuestro Array para los inputs
-      // De { "Color": "Rojo" }  --->  [{ key: "Color", value: "Rojo" }]
       if (equipoToEdit.especificaciones) {
         const specsArray = Object.entries(equipoToEdit.especificaciones).map(
-          ([key, value]) => ({
-            key,
-            value,
-          }),
+          ([key, value]) => ({ key, value }),
         );
         // Si el array está vacío, dejamos al menos una fila
         setSpecsList(
@@ -46,10 +58,12 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
     }
   }, [equipoToEdit]);
 
+  // Manejador para inputs de texto normales
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // Manejadores para Specs Dinámicas
   const handleSpecChange = (index, field, value) => {
     const newSpecs = [...specsList];
     newSpecs[index][field] = value;
@@ -57,13 +71,15 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
   };
 
   const addSpecRow = () => setSpecsList([...specsList, { key: '', value: '' }]);
+
   const removeSpecRow = (index) =>
     setSpecsList(specsList.filter((_, i) => i !== index));
 
+  // Envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Convertir Array a Objeto JSON
+    // Convertir Array a Objeto JSON para la BD
     const specsObject = specsList.reduce((acc, item) => {
       if (item.key && item.value) acc[item.key] = item.value;
       return acc;
@@ -81,7 +97,7 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
         await api.post('/equipos', payload);
         toast.success('Equipo registrado correctamente');
       }
-      onSuccess();
+      onSuccess(); // Cerrar modal y recargar tabla
     } catch (error) {
       console.error(error);
       toast.error('Error al guardar');
@@ -101,6 +117,7 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
             value={formData.marca}
             onChange={handleChange}
             required
+            placeholder='Ej: Dell'
           />
         </div>
         <div className='input-group'>
@@ -110,6 +127,7 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
             value={formData.modelo}
             onChange={handleChange}
             required
+            placeholder='Ej: Latitude 5420'
           />
         </div>
       </div>
@@ -122,19 +140,37 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
             value={formData.serie}
             onChange={handleChange}
             required
+            placeholder='Ej: 8H2J9K1'
           />
         </div>
+
+        {/* NUEVO INPUT DE FECHA */}
         <div className='input-group'>
-          <label>Estado</label>
-          <select
-            name='estado'
-            value={formData.estado}
+          <label>Fecha de Compra</label>
+          <input
+            type='date'
+            name='fecha_compra'
+            value={formData.fecha_compra}
             onChange={handleChange}
-          >
-            <option value='operativo'>Operativo</option>
-            <option value='mantenimiento'>Mantenimiento</option>
-            <option value='malogrado'>Malogrado</option>
-          </select>
+            // Puedes agregar 'required' si es obligatorio
+          />
+        </div>
+      </div>
+
+      <div className='form-row'>
+        <div
+          className='input-group'
+          style={{ width: '100%' }}
+        >
+          <label>Estado</label>
+          <CustomSelect
+            options={estadoOptions}
+            value={estadoOptions.find((op) => op.value === formData.estado)}
+            onChange={(selected) =>
+              setFormData({ ...formData, estado: selected?.value || '' })
+            }
+            placeholder='Seleccione estado...'
+          />
         </div>
       </div>
 
@@ -146,12 +182,12 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
             key={index}
           >
             <input
-              placeholder='Propiedad'
+              placeholder='Propiedad (ej: Ram)'
               value={spec.key}
               onChange={(e) => handleSpecChange(index, 'key', e.target.value)}
             />
             <input
-              placeholder='Valor'
+              placeholder='Valor (ej: 16GB)'
               value={spec.value}
               onChange={(e) => handleSpecChange(index, 'value', e.target.value)}
             />
@@ -159,6 +195,7 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
               type='button'
               className='btn-remove'
               onClick={() => removeSpecRow(index)}
+              title='Eliminar campo'
             >
               <FaTrash />
             </button>

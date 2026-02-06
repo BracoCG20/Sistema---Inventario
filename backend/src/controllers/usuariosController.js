@@ -1,10 +1,11 @@
 const db = require('../config/db');
 
-// 1. Obtener todos los empleados (Activos)
+// 1. Obtener todos los usuarios (empleados)
 const getUsuarios = async (req, res) => {
   try {
+    // CAMBIO: 'FROM usuarios' -> 'FROM empleados'
     const response = await db.query(
-      'SELECT * FROM empleados ORDER BY apellidos ASC',
+      'SELECT * FROM empleados ORDER BY nombres ASC',
     );
     res.status(200).json(response.rows);
   } catch (error) {
@@ -13,36 +14,71 @@ const getUsuarios = async (req, res) => {
   }
 };
 
-// 2. Registrar un nuevo empleado
+// 2. Crear usuario
 const createUsuario = async (req, res) => {
-  const { dni, nombres, apellidos, correo, empresa, cargo } = req.body;
+  const { dni, nombres, apellidos, correo, empresa, cargo, genero, telefono } =
+    req.body;
 
   try {
-    // Validación básica: DNI duplicado
-    const checkDni = await db.query('SELECT * FROM empleados WHERE dni = $1', [
-      dni,
-    ]);
-    if (checkDni.rows.length > 0) {
-      return res.status(400).json({ error: 'El DNI ya está registrado.' });
-    }
-
-    const newUsuario = await db.query(
-      `INSERT INTO empleados (dni, nombres, apellidos, correo, empresa, cargo) 
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [dni, nombres, apellidos, correo, empresa, cargo],
+    // CAMBIO: 'INSERT INTO usuarios' -> 'INSERT INTO empleados'
+    const newUser = await db.query(
+      'INSERT INTO empleados (dni, nombres, apellidos, correo, empresa, cargo, genero, telefono) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [dni, nombres, apellidos, correo, empresa, cargo, genero, telefono],
     );
-
-    res.status(201).json({
-      message: 'Usuario registrado correctamente',
-      usuario: newUsuario.rows[0],
-    });
+    res.json(newUser.rows[0]);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Error al registrar usuario' });
+    res.status(500).json({ error: 'Error al crear usuario' });
   }
 };
 
-module.exports = {
-  getUsuarios,
-  createUsuario,
+// 3. Actualizar usuario
+const updateUsuario = async (req, res) => {
+  const { id } = req.params;
+  const { dni, nombres, apellidos, correo, empresa, cargo, genero, telefono } =
+    req.body;
+
+  try {
+    // CAMBIO: 'UPDATE usuarios' -> 'UPDATE empleados'
+    const result = await db.query(
+      'UPDATE empleados SET dni=$1, nombres=$2, apellidos=$3, correo=$4, empresa=$5, cargo=$6, genero=$7, telefono=$8 WHERE id=$9 RETURNING *',
+      [dni, nombres, apellidos, correo, empresa, cargo, genero, telefono, id],
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    res.json({
+      message: 'Usuario actualizado correctamente',
+      usuario: result.rows[0],
+    });
+  } catch (error) {
+    console.error('Error SQL:', error.message);
+    res.status(500).json({ error: 'Error al actualizar usuario' });
+  }
 };
+
+// 4. Eliminar (Soft Delete)
+const deleteUsuario = async (req, res) => {
+  const { id } = req.params;
+  try {
+    // CAMBIO CRÍTICO AQUÍ: 'UPDATE usuarios' -> 'UPDATE empleados'
+    // El error 42P01 salía aquí porque buscaba la tabla 'usuarios'
+    const result = await db.query(
+      'UPDATE empleados SET activo = false WHERE id = $1 RETURNING *',
+      [id],
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    res.json({ message: 'Usuario dado de baja correctamente' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al desactivar usuario' });
+  }
+};
+
+module.exports = { getUsuarios, createUsuario, updateUsuario, deleteUsuario };

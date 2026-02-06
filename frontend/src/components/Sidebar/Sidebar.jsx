@@ -1,81 +1,112 @@
-import { useState, useContext } from 'react';
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { AuthContext } from '../../context/AuthContext';
-import './Sidebar.scss';
-
-// Iconos
+import { useAuth } from '../../context/AuthContext'; // <--- Asegúrate de importar tu contexto
 import {
-  FaBars,
-  FaTimes,
+  FaHome,
   FaLaptop,
   FaUsers,
-  FaExchangeAlt,
+  FaPaperPlane,
   FaUndo,
   FaHistory,
-  FaSignOutAlt,
-  FaHome,
+  FaSignOutAlt, // Icono Cerrar Sesión
+  FaBars, // Icono Hamburguesa
+  FaChevronLeft,
 } from 'react-icons/fa';
+import { FaArrowRightArrowLeft } from 'react-icons/fa6';
+
+import './Sidebar.scss';
+import logo from '../../assets/logo_gruposp.png';
 
 const Sidebar = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const { logout } = useContext(AuthContext);
+  const [isOpen, setIsOpen] = useState(true); // Estado para colapsar
+  const { logout } = useAuth(); // Función del AuthContext
 
-  const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
-  };
+  const routes = [
+    { path: '/', name: 'Dashboard', icon: <FaHome /> },
+    { path: '/equipos', name: 'Equipos', icon: <FaLaptop /> },
+    { path: '/usuarios', name: 'Colaboradores', icon: <FaUsers /> },
 
-  // Definimos el menú en un array para mantener el código limpio
-  const menuItems = [
-    { path: '/', label: 'Dashboard', icon: <FaHome /> },
-    { path: '/equipos', label: 'Equipos', icon: <FaLaptop /> },
-    { path: '/usuarios', label: 'Usuarios', icon: <FaUsers /> },
-    { path: '/entrega', label: 'Entrega', icon: <FaExchangeAlt /> },
-    { path: '/devolucion', label: 'Devolución', icon: <FaUndo /> },
-    { path: '/historial', label: 'Historial', icon: <FaHistory /> },
+    // SECCIÓN OPERATIVA
+    {
+      path: '/entrega',
+      name: 'Realizar Entrega',
+      icon: <FaArrowRightArrowLeft />,
+      type: 'entrega',
+    },
+    {
+      path: '/devolucion',
+      name: 'Devolución',
+      icon: <FaUndo />,
+      type: 'devolucion',
+    },
+
+    { path: '/historial', name: 'Historial', icon: <FaHistory /> },
   ];
 
+  const toggleSidebar = () => setIsOpen(!isOpen);
+
   return (
-    <aside className={`sidebar ${isCollapsed ? 'collapsed' : 'expanded'}`}>
-      {/* Header: Logo y Toggle */}
-      <div className='sidebar-header'>
-        {!isCollapsed && <h3>Inventario</h3>}
-        <button
-          className='toggle-btn'
-          onClick={toggleSidebar}
-        >
-          {isCollapsed ? <FaBars /> : <FaTimes />}
-        </button>
+    <div className={`sidebar ${isOpen ? 'open' : 'collapsed'}`}>
+      {/* BOTÓN PARA ENCOGER/EXPANDIR */}
+      <div
+        className='toggle-btn'
+        onClick={toggleSidebar}
+      >
+        {isOpen ? <FaChevronLeft /> : <FaBars />}
       </div>
 
-      {/* Navegación */}
+      <div className='logo-container'>
+        {/* Si está colapsado, ocultamos el logo o mostramos una versión mini */}
+        <img
+          src={logo}
+          alt='Logo'
+          className={!isOpen ? 'small-logo' : ''}
+        />
+      </div>
+
       <nav>
-        {menuItems.map((item) => (
+        {routes.map((route, index) => (
           <NavLink
-            key={item.path}
-            to={item.path}
+            key={index}
+            to={route.path}
             className={({ isActive }) =>
-              isActive ? 'nav-item active' : 'nav-item'
+              `nav-item ${isActive ? 'active' : ''} ${route.type ? route.type : ''}`
             }
-            title={isCollapsed ? item.label : ''} // Tooltip nativo si está colapsado
+            title={!isOpen ? route.name : ''} // Tooltip nativo cuando está cerrado
           >
-            <span className='icon'>{item.icon}</span>
-            <span className='label'>{item.label}</span>
+            <span className='icon'>{route.icon}</span>
+            {/* Ocultamos el texto si está colapsado */}
+            <span
+              className='label'
+              style={{ display: isOpen ? 'block' : 'none' }}
+            >
+              {route.name}
+            </span>
           </NavLink>
         ))}
       </nav>
 
-      {/* Footer: Logout */}
-      <div className='sidebar-footer'>
+      <div className='footer-actions'>
+        {/* BOTÓN CERRAR SESIÓN */}
         <button
-          onClick={logout}
           className='logout-btn'
+          onClick={logout}
           title='Cerrar Sesión'
         >
-          <FaSignOutAlt />
-          {!isCollapsed && <span>Salir</span>}
+          <span className='icon'>
+            <FaSignOutAlt />
+          </span>
+          <span
+            className='label'
+            style={{ display: isOpen ? 'block' : 'none' }}
+          >
+            Cerrar Sesión
+          </span>
         </button>
+
+        {isOpen && <p className='copyright'>© 2026 Grupo SP</p>}
       </div>
-    </aside>
+    </div>
   );
 };
 
