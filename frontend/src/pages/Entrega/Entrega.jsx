@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
 import { jsPDF } from 'jspdf';
-import { FaPaperPlane, FaHistory } from 'react-icons/fa';
+import { FaPaperPlane, FaHistory, FaCheck, FaTimes } from 'react-icons/fa';
 import PdfModal from '../../components/Modal/PdfModal';
 import CustomSelect from '../../components/Select/CustomSelect';
 
-// Estilos e Imágenes
+// Estilos
 import '../Equipos/FormStyles.scss';
 import '../Equipos/Equipos.scss';
 import logoImg from '../../assets/logo_gruposp.png';
@@ -25,7 +25,7 @@ const Entrega = () => {
   const [formData, setFormData] = useState({
     equipo_id: '',
     empleado_id: '',
-    cargador: true,
+    cargador: true, // Checkbox inicializado en true
     observaciones: '',
   });
 
@@ -37,22 +37,47 @@ const Entrega = () => {
         api.get('/historial'),
       ]);
 
-      // Equipos Disponibles y Operativos
+      // 1. Equipos Disponibles
       const disponibles = resEquipos.data.filter(
         (e) => e.estado === 'operativo' && e.disponible === true,
       );
+      setEquipos(disponibles);
 
-      // Últimas 10 entregas
+      // 2. Lógica para filtrar usuarios que YA tienen equipo
+      // Calculamos quién tiene equipo basándonos en el historial
+      const asignaciones = {}; // Mapa: { id_usuario: cantidad_equipos }
+
+      // Ordenamos historial por fecha (antiguo a nuevo) para procesar cronológicamente
+      const historialOrdenado = resHistorial.data.sort(
+        (a, b) => new Date(a.fecha_movimiento) - new Date(b.fecha_movimiento),
+      );
+
+      historialOrdenado.forEach((mov) => {
+        const empId = mov.empleado_id;
+        if (mov.tipo === 'entrega') {
+          asignaciones[empId] = (asignaciones[empId] || 0) + 1;
+        } else if (mov.tipo === 'devolucion') {
+          asignaciones[empId] = (asignaciones[empId] || 0) - 1;
+          // Evitar negativos por si acaso hay inconsistencias en BD antigua
+          if (asignaciones[empId] < 0) asignaciones[empId] = 0;
+        }
+      });
+
+      // Filtramos: Activos Y que NO tengan equipos asignados (cantidad 0 o undefined)
+      const usuariosLibres = resUsuarios.data.filter((u) => {
+        const equiposEnPoder = asignaciones[u.id] || 0;
+        return u.activo === true && equiposEnPoder === 0;
+      });
+
+      setUsuarios(usuariosLibres);
+
+      // 3. Historial Visual (Últimas 10 entregas para la tabla)
       const entregasRecientes = resHistorial.data
         .filter((h) => h.tipo === 'entrega')
         .sort(
           (a, b) => new Date(b.fecha_movimiento) - new Date(a.fecha_movimiento),
         )
         .slice(0, 10);
-
-      setEquipos(disponibles);
-      const usuariosActivos = resUsuarios.data.filter((u) => u.activo === true); // <--- FILTRO IMPORTANTE
-      setUsuarios(usuariosActivos);
       setHistorialEntregas(entregasRecientes);
     } catch (error) {
       console.error(error);
@@ -66,7 +91,6 @@ const Entrega = () => {
     fetchData();
   }, []);
 
-  // Opciones para CustomSelect
   const equiposOptions = equipos.map((eq) => ({
     value: eq.id,
     label: `${eq.marca} ${eq.modelo} - S/N: ${eq.serie}`,
@@ -77,10 +101,25 @@ const Entrega = () => {
     label: `${usr.nombres} ${usr.apellidos}`,
   }));
 
-  const handleChange = (e) => {
-    const value =
-      e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-    setFormData({ ...formData, [e.target.name]: value });
+  // Manejo del Checkbox simplificado
+  const handleCheckboxChange = (e) => {
+    setFormData({ ...formData, cargador: e.target.checked });
+  };
+
+  // --- REEMPLAZA LA FUNCIÓN formatDateTime POR ESTA ---
+  const formatDateTime = (isoString) => {
+    if (!isoString) return '-';
+    const fechaSegura = isoString.endsWith('Z') ? isoString : `${isoString}Z`;
+    const date = new Date(fechaSegura);
+    return date.toLocaleString('es-PE', {
+      timeZone: 'America/Lima',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
   };
 
   const generarPDFBlob = (equipo, usuario) => {
@@ -108,12 +147,10 @@ const Entrega = () => {
     doc.text(new Date().toLocaleDateString(), margenIzq + 32, y);
     y += 10;
 
-    // Intro con Negritas
     const prefijo = usuario.genero === 'mujer' ? 'a la Srta.' : 'al Sr.';
 
-    // INTRODUCCIÓN DINÁMICA
     const parts = [
-      { text: `En Magdalena, se hace entrega ${prefijo} `, type: 'normal' }, // <--- AQUÍ SE USA LA VARIABLE
+      { text: `En Magdalena, se hace entrega ${prefijo} `, type: 'normal' },
       { text: `${usuario.nombres} ${usuario.apellidos}`, type: 'bold' },
       { text: ' identificado (a) con DNI/PTP/C.E N° ', type: 'normal' },
       { text: `${usuario.dni}`, type: 'bold' },
@@ -138,7 +175,7 @@ const Entrega = () => {
     });
     y += 13;
 
-    // Tabla
+    // Tabla PDF
     const altoFila = 8;
     const altoData = 12;
     const col1 = margenIzq;
@@ -159,12 +196,15 @@ const Entrega = () => {
     doc.rect(margenIzq, y, anchoUtil, altoData);
     doc.line(col2, y, col2, y + altoData);
     doc.line(col3, y, col3, y + altoData);
-    doc.text('Laptop y cargador', col1 + 2, y + 7);
-    doc.text(`Código: ${equipo.serie}`, col2 + 2, y + 7);
+
+    const descEquipo = `Laptop ${equipo.marca} ${equipo.modelo}`;
+    const descCargador = formData.cargador ? ' + Cargador' : ' (Sin Cargador)';
+
+    doc.text(descEquipo + descCargador, col1 + 2, y + 7);
+    doc.text(`S/N: ${equipo.serie}`, col2 + 2, y + 7);
     doc.text('1', col3 + 20, y + 7, { align: 'center' });
     y += altoData + 10;
 
-    // Legal
     const legalText = [
       'Por falta de equipos personales para trabajar se hace entrega de esta acta la cual se mantendrá hasta diciembre. Finalizado el plazo el Trabajador deberá devolver el equipo.',
       'Al recibir estos elementos de trabajo, me comprometo a:',
@@ -180,7 +220,6 @@ const Entrega = () => {
       y += lines.length * 5 + 2;
     });
 
-    // Firmas
     const yFirma = 250;
     doc.line(margenIzq, yFirma, margenIzq + 60, yFirma);
     doc.setFont('helvetica', 'bold');
@@ -213,13 +252,14 @@ const Entrega = () => {
 
       setPdfUrl(generarPDFBlob(eq, us));
       setShowPdfModal(true);
+      // Reiniciar formulario
       setFormData({
         equipo_id: '',
         empleado_id: '',
         cargador: true,
         observaciones: '',
       });
-      fetchData();
+      fetchData(); // Recargar datos para actualizar listas
     } catch (error) {
       console.error(error);
       toast.error('Error al registrar');
@@ -236,6 +276,7 @@ const Entrega = () => {
       <div
         style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}
       >
+        {/* FORMULARIO */}
         <div
           className='table-container'
           style={{ padding: '2rem' }}
@@ -257,11 +298,12 @@ const Entrega = () => {
                 placeholder='Buscar equipo...'
               />
             </div>
+
             <div
               className='input-group'
               style={{ marginTop: '1rem' }}
             >
-              <label>Colaborador</label>
+              <label>Colaborador (Sin equipo asignado)</label>
               <CustomSelect
                 options={usuariosOptions}
                 value={usuariosOptions.find(
@@ -273,28 +315,54 @@ const Entrega = () => {
                 placeholder='Buscar colaborador...'
               />
             </div>
+
+            {/* CHECKBOX ARREGLADO */}
             <div
               className='form-row'
-              style={{ marginTop: '1rem' }}
+              style={{ marginTop: '1.5rem' }}
             >
-              <div
-                className='input-group'
-                style={{ flexDirection: 'row', gap: '10px' }}
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  background: '#f8fafc',
+                  padding: '12px 15px',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  width: '100%',
+                  cursor: 'pointer', // Cursor de mano en todo el bloque
+                }}
               >
                 <input
                   type='checkbox'
                   name='cargador'
                   checked={formData.cargador}
-                  onChange={handleChange}
+                  onChange={handleCheckboxChange}
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    cursor: 'pointer',
+                    accentColor: '#7c3aed', // Color morado del tema
+                  }}
                 />
-                <label>¿Incluye cargador?</label>
-              </div>
+                <span
+                  style={{
+                    fontWeight: '600',
+                    color: '#334155',
+                    fontSize: '0.95rem',
+                  }}
+                >
+                  ¿Incluye Cargador?
+                </span>
+              </label>
             </div>
+
             <button
               type='submit'
               className='btn-submit'
               style={{
-                marginTop: '1rem',
+                marginTop: '1.5rem',
                 display: 'flex',
                 justifyContent: 'center',
                 gap: '10px',
@@ -304,32 +372,80 @@ const Entrega = () => {
             </button>
           </form>
         </div>
+
+        {/* HISTORIAL */}
         <div
           className='table-container'
           style={{ height: 'fit-content' }}
         >
-          <h3 style={{ padding: '1rem', borderBottom: '1px solid #eee' }}>
-            <FaHistory /> Últimas Entregas
+          <h3
+            style={{
+              padding: '1rem',
+              borderBottom: '1px solid #eee',
+              fontSize: '1.1rem',
+              color: '#1e293b',
+            }}
+          >
+            <FaHistory style={{ marginRight: '8px' }} /> Últimas Entregas
           </h3>
           <table>
             <thead>
               <tr>
-                <th>Fecha</th>
+                <th>Fecha y Hora Entrega</th>
                 <th>Equipo</th>
                 <th>Colaborador</th>
+                <th style={{ textAlign: 'center' }}>Cargador</th>
               </tr>
             </thead>
             <tbody>
               {historialEntregas.map((h) => (
                 <tr key={h.id}>
-                  <td>{new Date(h.fecha_movimiento).toLocaleDateString()}</td>
                   <td>
-                    {h.modelo}
+                    <span
+                      style={{
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
+                        color: '#475569',
+                      }}
+                    >
+                      {formatDateTime(h.fecha_movimiento)}
+                    </span>
+                  </td>
+                  <td>
+                    <span style={{ fontWeight: '600' }}>{h.modelo}</span>
                     <br />
-                    <small>{h.serie}</small>
+                    <small
+                      style={{ fontFamily: 'monospace', color: '#64748b' }}
+                    >
+                      S/N: {h.serie}
+                    </small>
                   </td>
                   <td>
                     {h.empleado_nombre} {h.empleado_apellido}
+                  </td>
+
+                  {/* CHECKBOX VISUAL */}
+                  <td style={{ textAlign: 'center' }}>
+                    <div
+                      style={{
+                        background:
+                          h.cargador !== false ? '#dcfce7' : '#fee2e2',
+                        color: h.cargador !== false ? '#16a34a' : '#ef4444',
+                        width: '30px',
+                        height: '30px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto',
+                      }}
+                    >
+                      {h.cargador !== false ? (
+                        <FaCheck style={{ fontSize: '0.8rem' }} />
+                      ) : (
+                        <FaTimes style={{ fontSize: '0.8rem' }} />
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -337,6 +453,7 @@ const Entrega = () => {
           </table>
         </div>
       </div>
+
       <PdfModal
         isOpen={showPdfModal}
         onClose={() => setShowPdfModal(false)}
