@@ -1,63 +1,76 @@
-import { createContext, useState, useEffect, useContext } from 'react'; // 1. Agregado useContext
-import { jwtDecode } from 'jwt-decode';
-import { toast } from 'react-toastify';
-import api from '../services/api';
+import { createContext, useState, useEffect, useContext } from "react";
+import { jwtDecode } from "jwt-decode"; // Asegúrate de importar esto así (versiones nuevas) o jwt_decode
+import { toast } from "react-toastify";
+import api from "../services/api";
 
 export const AuthContext = createContext();
 
-// 2. IMPORTANTE: Agregamos el hook personalizado para que Sidebar.jsx pueda usarlo
 export const useAuth = () => {
-  return useContext(AuthContext);
+	return useContext(AuthContext);
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+	const [user, setUser] = useState(null);
+	const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Verificar si hay token al recargar la página
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        // Opcional: Verificar expiración aquí
-        setUser(decoded);
-      } catch (error) {
-        localStorage.removeItem('token');
-      }
-    }
-    setLoading(false);
-  }, []);
+	// Verificar sesión al cargar la página
+	useEffect(() => {
+		const token = localStorage.getItem("token");
+		if (token) {
+			try {
+				const decoded = jwtDecode(token);
 
-  const login = async (email, password) => {
-    try {
-      const res = await api.post('/auth/login', { email, password });
-      const { token, user } = res.data;
+				// Verificar expiración (exp viene en segundos)
+				const currentTime = Date.now() / 1000;
+				if (decoded.exp < currentTime) {
+					logout(); // Si expiró, limpiamos
+				} else {
+					// Restauramos el usuario desde el token
+					setUser({
+						id: decoded.id,
+						role: decoded.role,
+						// Nota: El token no suele tener el nombre para ahorrar espacio,
+						// pero si lo necesitas visualmente puedes guardarlo en localStorage separado
+						// o decodificar lo que hayas puesto en el payload.
+						// Por ahora, con ID y Rol basta para permisos.
+					});
+				}
+			} catch (error) {
+				logout();
+			}
+		}
+		setLoading(false);
+	}, []);
 
-      // Guardar token y estado
-      localStorage.setItem('token', token);
-      setUser(user);
+	const login = async (email, password) => {
+		try {
+			const res = await api.post("/auth/login", { email, password });
+			const { token, user: userData } = res.data; // userData viene del backend con nombre y rol
 
-      toast.success(`Bienvenido, ${user.nombre}`);
-      return true;
-    } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.error || 'Error al iniciar sesión');
-      return false;
-    }
-  };
+			localStorage.setItem("token", token);
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
-    toast.info('Sesión cerrada');
-    // Opcional: Redirigir al login si es necesario
-    // window.location.href = '/login';
-  };
+			// Guardamos en el estado todos los datos que devolvió el backend
+			setUser(userData);
 
-  return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
+			toast.success(res.data.message); // "Bienvenido..."
+			return true;
+		} catch (error) {
+			console.error(error);
+			toast.error(error.response?.data?.error || "Error al iniciar sesión");
+			return false;
+		}
+	};
+
+	const logout = () => {
+		localStorage.removeItem("token");
+		setUser(null);
+		// Opcional: toast.info('Sesión cerrada');
+		// window.location.href = '/login'; // O dejar que ProtectedRoute maneje la redirección
+	};
+
+	return (
+		<AuthContext.Provider value={{ user, login, logout, loading }}>
+			{children}
+		</AuthContext.Provider>
+	);
 };
