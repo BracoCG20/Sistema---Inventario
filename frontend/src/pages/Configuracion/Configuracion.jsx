@@ -10,12 +10,20 @@ import {
 	FaEnvelope,
 	FaWhatsapp,
 	FaUserTie,
+	FaPlus, // Importamos el icono más
 } from "react-icons/fa";
 
-// Importamos el archivo de estilos
+// Importamos el archivo de estilos propios de la página
 import "./Configuracion.scss";
 
+// IMPORTANTE: Importamos el componente del Modal que creamos aparte
+import RegisterAdminModal from "../../components/RegisterAdminModal/RegisterAdminModal";
+
 const Configuracion = () => {
+	// --- ESTADO PARA EL MODAL ---
+	const [showModal, setShowModal] = useState(false);
+
+	// --- ESTADOS DEL PERFIL ---
 	const [loading, setLoading] = useState(true);
 	const [preview, setPreview] = useState(null);
 	const [formData, setFormData] = useState({
@@ -30,6 +38,7 @@ const Configuracion = () => {
 	});
 	const [fotoFile, setFotoFile] = useState(null);
 
+	// Cargar datos del perfil
 	useEffect(() => {
 		const fetchPerfil = async () => {
 			try {
@@ -105,19 +114,33 @@ const Configuracion = () => {
 
 	if (loading) return <div className='loading-state'>Cargando perfil...</div>;
 
+	// Avatar por defecto si no hay imagen (evita errores de carga)
+	const defaultImage = `https://ui-avatars.com/api/?name=${formData.nombre}+${formData.apellidos}&background=random`;
+
 	return (
 		<div className='config-container'>
-			<div className='page-header'>
-				<h1>Configuración de Perfil</h1>
+			{/* --- ENCABEZADO CON BOTÓN DE AGREGAR --- */}
+			<div className='header-actions'>
+				<div className='page-header'>
+					<h1>Configuración de Perfil</h1>
+				</div>
+				{/* Botón que abre el modal */}
+				<button className='btn-add-user' onClick={() => setShowModal(true)}>
+					<FaPlus /> Nuevo Usuario
+				</button>
 			</div>
 
+			{/* --- FORMULARIO DE EDICIÓN DE PERFIL --- */}
 			<form onSubmit={handleSubmit} className='config-grid'>
 				{/* TARJETA IZQUIERDA: FOTO */}
 				<div className='card profile-card'>
 					<div className='photo-wrapper'>
 						<img
-							src={preview || "https://via.placeholder.com/150?text=Sin+Foto"}
+							src={preview || defaultImage}
 							alt='Perfil'
+							onError={(e) => {
+								e.target.src = defaultImage;
+							}}
 						/>
 						<label htmlFor='fotoInput' className='btn-camera'>
 							<FaCamera />
@@ -147,6 +170,7 @@ const Configuracion = () => {
 							value={formData.nombre_usuario}
 							onChange={handleChange}
 							placeholder='ej. jdoe'
+							className='input-field'
 						/>
 					</div>
 				</div>
@@ -163,6 +187,7 @@ const Configuracion = () => {
 								name='nombre'
 								value={formData.nombre}
 								onChange={handleChange}
+								className='input-field'
 							/>
 						</div>
 						<div className='input-group'>
@@ -172,6 +197,7 @@ const Configuracion = () => {
 								name='apellidos'
 								value={formData.apellidos}
 								onChange={handleChange}
+								className='input-field'
 							/>
 						</div>
 					</div>
@@ -186,6 +212,7 @@ const Configuracion = () => {
 								name='email'
 								value={formData.email}
 								onChange={handleChange}
+								className='input-field'
 							/>
 						</div>
 						<div className='input-group'>
@@ -198,6 +225,7 @@ const Configuracion = () => {
 								value={formData.telefono}
 								onChange={handleChange}
 								placeholder='+51 999...'
+								className='input-field'
 							/>
 						</div>
 					</div>
@@ -214,6 +242,7 @@ const Configuracion = () => {
 								name='empresa'
 								value={formData.empresa}
 								onChange={handleChange}
+								className='input-field'
 							/>
 						</div>
 						<div className='input-group'>
@@ -225,6 +254,7 @@ const Configuracion = () => {
 								name='cargo'
 								value={formData.cargo}
 								onChange={handleChange}
+								className='input-field'
 							/>
 						</div>
 					</div>
@@ -241,7 +271,7 @@ const Configuracion = () => {
 							value={formData.password}
 							onChange={handleChange}
 							placeholder='Dejar en blanco para mantener la actual'
-							className='input-gray'
+							className='input-field input-gray'
 						/>
 					</div>
 
@@ -250,6 +280,9 @@ const Configuracion = () => {
 					</button>
 				</div>
 			</form>
+
+			{/* --- RENDERIZADO DEL MODAL (COMPONENTE APARTE) --- */}
+			{showModal && <RegisterAdminModal onClose={() => setShowModal(false)} />}
 		</div>
 	);
 };

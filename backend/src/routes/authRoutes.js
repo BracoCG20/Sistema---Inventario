@@ -9,6 +9,7 @@ const {
 	login,
 	getPerfil,
 	updatePerfil,
+	register,
 } = require("../controllers/authController");
 const verifyToken = require("../middlewares/authMiddleware");
 
@@ -42,5 +43,6 @@ router.post("/login", login);
 // Rutas Protegidas (Requieren Token)
 router.get("/perfil", verifyToken, getPerfil);
 router.put("/perfil", verifyToken, upload.single("foto"), updatePerfil);
+router.post("/register", verifyToken, register);
 
 module.exports = router;

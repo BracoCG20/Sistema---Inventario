@@ -47,6 +47,7 @@ const login = async (req, res) => {
 			user: {
 				id: user.id,
 				nombre: user.nombre,
+				email: user.email,
 				foto_url: user.foto_url,
 				cargo: user.cargo,
 			},
@@ -161,9 +162,48 @@ const updatePerfil = async (req, res) => {
 	}
 };
 
+const register = async (req, res) => {
+	const { nombre, apellidos, email, password, cargo, empresa, telefono } =
+		req.body;
+
+	try {
+		// 1. Validar si el usuario ya existe
+		const userExist = await pool.query(
+			"SELECT * FROM usuarios_admin WHERE email = $1",
+			[email],
+		);
+		if (userExist.rows.length > 0) {
+			return res.status(400).json({ error: "El correo ya está registrado" });
+		}
+
+		// 2. Encriptar contraseña
+		const salt = await bcrypt.genSalt(10);
+		const hash = await bcrypt.hash(password, salt);
+
+		// 3. Insertar en Base de Datos
+		const query = `
+            INSERT INTO usuarios_admin (nombre, apellidos, email, password_hash, cargo, empresa, telefono, fecha_creacion)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+            RETURNING id, nombre, email
+        `;
+
+		const values = [nombre, apellidos, email, hash, cargo, empresa, telefono];
+		const result = await pool.query(query, values);
+
+		res.json({
+			message: "Usuario administrador creado exitosamente",
+			user: result.rows[0],
+		});
+	} catch (error) {
+		console.error("Error en registro:", error);
+		res.status(500).json({ error: "Error al registrar usuario" });
+	}
+};
+
 // --- EXPORTACIÓN ---
 module.exports = {
 	login,
 	getPerfil,
 	updatePerfil,
+	register,
 };

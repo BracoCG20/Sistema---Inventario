@@ -1,17 +1,17 @@
-import { useState } from "react";
-import { NavLink } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext"; // <--- Asegúrate de importar tu contexto
+import { useState, useEffect } from "react";
+import { NavLink, useNavigate } from "react-router-dom"; // <--- 1. AGREGADO useNavigate
+import { useAuth } from "../../context/AuthContext";
 import {
 	FaHome,
 	FaLaptop,
 	FaUsers,
-	FaPaperPlane,
 	FaUndo,
 	FaHistory,
-	FaSignOutAlt, // Icono Cerrar Sesión
-	FaBars, // Icono Hamburguesa
+	FaSignOutAlt,
+	FaBars,
 	FaChevronLeft,
 	FaCog,
+	FaUserCircle,
 } from "react-icons/fa";
 import { FaArrowRightArrowLeft } from "react-icons/fa6";
 
@@ -19,15 +19,37 @@ import "./Sidebar.scss";
 import logo from "../../assets/logo_gruposp.png";
 
 const Sidebar = () => {
-	const [isOpen, setIsOpen] = useState(true); // Estado para colapsar
-	const { logout } = useAuth(); // Función del AuthContext
+	const [isOpen, setIsOpen] = useState(false);
+	const { logout } = useAuth();
+	const navigate = useNavigate(); // <--- 2. INICIALIZAMOS EL HOOK
+
+	const [user, setUser] = useState({
+		nombre: "Usuario",
+		email: "",
+		foto_url: null,
+	});
+
+	useEffect(() => {
+		const storedUser = localStorage.getItem("user_data");
+		if (storedUser) {
+			try {
+				setUser(JSON.parse(storedUser));
+			} catch (e) {
+				console.error(e);
+			}
+		}
+	}, []);
+
+	// --- 3. NUEVA FUNCIÓN PARA CERRAR SESIÓN Y REDIRIGIR ---
+	const handleLogout = () => {
+		logout(); // Limpia el token y el estado global
+		navigate("/login"); // <--- FUERZA LA REDIRECCIÓN
+	};
 
 	const routes = [
 		{ path: "/", name: "Dashboard", icon: <FaHome /> },
 		{ path: "/equipos", name: "Equipos", icon: <FaLaptop /> },
 		{ path: "/usuarios", name: "Colaboradores", icon: <FaUsers /> },
-
-		// SECCIÓN OPERATIVA
 		{
 			path: "/entrega",
 			name: "Realizar Entrega",
@@ -40,22 +62,21 @@ const Sidebar = () => {
 			icon: <FaUndo />,
 			type: "devolucion",
 		},
-
 		{ path: "/historial", name: "Historial", icon: <FaHistory /> },
-		{ path: "/configuracion", name: "Configuracion", icon: <FaCog /> },
+		{ path: "/configuracion", name: "Configuración", icon: <FaCog /> },
 	];
 
-	const toggleSidebar = () => setIsOpen(!isOpen);
+	const avatarUrl = user.foto_url
+		? `http://localhost:4000${user.foto_url}`
+		: null;
 
 	return (
-		<div className={`sidebar ${isOpen ? "open" : "collapsed"}`}>
-			{/* BOTÓN PARA ENCOGER/EXPANDIR */}
-			<div className='toggle-btn' onClick={toggleSidebar}>
-				{isOpen ? <FaChevronLeft /> : <FaBars />}
-			</div>
-
+		<div
+			className={`sidebar ${isOpen ? "open" : "collapsed"}`}
+			onMouseEnter={() => setIsOpen(true)}
+			onMouseLeave={() => setIsOpen(false)}
+		>
 			<div className='logo-container'>
-				{/* Si está colapsado, ocultamos el logo o mostramos una versión mini */}
 				<img src={logo} alt='Logo' className={!isOpen ? "small-logo" : ""} />
 			</div>
 
@@ -67,14 +88,10 @@ const Sidebar = () => {
 						className={({ isActive }) =>
 							`nav-item ${isActive ? "active" : ""} ${route.type ? route.type : ""}`
 						}
-						title={!isOpen ? route.name : ""} // Tooltip nativo cuando está cerrado
+						title={!isOpen ? route.name : ""}
 					>
-						<span className='icon'>{route.icon}</span>
-						{/* Ocultamos el texto si está colapsado */}
-						<span
-							className='label'
-							style={{ display: isOpen ? "block" : "none" }}
-						>
+						<div className='icon-wrapper'>{route.icon}</div>
+						<span className={`label ${isOpen ? "show" : "hide"}`}>
 							{route.name}
 						</span>
 					</NavLink>
@@ -82,15 +99,27 @@ const Sidebar = () => {
 			</nav>
 
 			<div className='footer-actions'>
-				{/* BOTÓN CERRAR SESIÓN */}
-				<button className='logout-btn' onClick={logout} title='Cerrar Sesión'>
-					<span className='icon'>
+				<div className={`user-mini-card ${!isOpen ? "collapsed" : ""}`}>
+					<div className='avatar'>
+						{avatarUrl ? <img src={avatarUrl} alt='User' /> : <FaUserCircle />}
+					</div>
+					<div className={`info ${isOpen ? "show" : "hide"}`}>
+						<span className='name'>{user.nombre}</span>
+						<span className='email' title={user.email}>
+							{user.email}
+						</span>
+					</div>
+				</div>
+
+				<button
+					className={`logout-btn ${!isOpen ? "collapsed" : ""}`}
+					onClick={handleLogout} // <--- 4. USAMOS LA NUEVA FUNCIÓN AQUÍ
+					title='Cerrar Sesión'
+				>
+					<span className='icon-wrapper'>
 						<FaSignOutAlt />
 					</span>
-					<span
-						className='label'
-						style={{ display: isOpen ? "block" : "none" }}
-					>
+					<span className={`label ${isOpen ? "show" : "hide"}`}>
 						Cerrar Sesión
 					</span>
 				</button>

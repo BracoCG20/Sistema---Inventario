@@ -1,175 +1,300 @@
-@use '../../styles/variables' as v;
+@use "../../styles/variables" as v;
+
+// Curva de animación suave
+$smooth-transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
 .sidebar {
-  // Ancho variable según estado
-  width: 260px;
-  &.collapsed {
-    width: 80px;
-  } // Ancho reducido
+	width: 260px;
+	height: 100vh;
+	background: rgba(255, 255, 255, 0.98);
+	backdrop-filter: blur(10px);
+	border-right: 1px solid rgba(0, 0, 0, 0.08);
+	display: flex;
+	flex-direction: column;
+	padding: 1.5rem 1rem;
+	transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+	position: relative;
+	z-index: 1000;
+	box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
+	overflow: hidden;
 
-  height: 100vh;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(15px);
-  border-right: 1px solid rgba(255, 255, 255, 0.3);
-  display: flex;
-  flex-direction: column;
-  padding: 1.5rem 1rem;
-  transition: width 0.3s ease; // Transición suave
-  position: relative; // Para posicionar el toggle button
+	// --- ESTADO COLAPSADO ---
+	&.collapsed {
+		width: 80px;
 
-  // BOTÓN TOGGLE (HAMBURGUESA)
-  .toggle-btn {
-    position: absolute;
-    top: 15px;
-    right: -15px; // Flota un poco hacia afuera o dentro
-    width: 30px;
-    height: 30px;
-    background: v.$primary;
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    font-size: 0.8rem;
-    z-index: 100;
-    transition: transform 0.2s;
+		.logo-container img {
+			max-width: 40px;
+		}
 
-    &:hover {
-      transform: scale(1.1);
-    }
-  }
+		.nav-item {
+			justify-content: center;
+			.label {
+				opacity: 0;
+				width: 0;
+				margin-left: 0;
+			}
+		}
 
-  // LOGO
-  .logo-container {
-    margin-bottom: 2rem;
-    text-align: center;
-    height: 60px; // Altura fija para evitar saltos
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
+		.footer-actions {
+			.user-mini-card {
+				justify-content: center;
+				background: transparent;
+				border-color: transparent;
+				padding: 8px 0;
 
-    img {
-      max-width: 120px;
-      transition: all 0.3s ease;
+				.info {
+					opacity: 0;
+					width: 0;
+					margin-left: 0;
+				}
+			}
 
-      &.small-logo {
-        max-width: 40px; // Logo pequeño
-      }
-    }
-  }
+			.logout-btn {
+				justify-content: center;
+				padding: 10px 0;
+				.label {
+					opacity: 0;
+					width: 0;
+					margin-left: 0;
+				}
+			}
 
-  nav {
-    display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
-    flex: 1;
+			.copyright {
+				opacity: 0;
+				height: 0;
+				margin: 0;
+			}
+		}
+	}
 
-    .nav-item {
-      display: flex;
-      align-items: center;
-      padding: 12px 15px; // Padding ajustado
-      color: v.$text-muted;
-      text-decoration: none;
-      border-radius: 12px;
-      font-weight: 500;
-      transition: all 0.2s ease;
-      white-space: nowrap; // Evita que el texto salte línea
-      overflow: hidden; // Oculta lo que sobre
+	// --- ESTILOS GENERALES ---
 
-      .icon {
-        min-width: 30px; // Ancho fijo para el icono
-        font-size: 1.3rem;
-        display: flex;
-        justify-content: center;
-      }
+	.toggle-btn {
+		position: absolute;
+		top: 20px;
+		right: -12px;
+		width: 24px;
+		height: 24px;
+		background: #4f46e5;
+		color: white;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+		font-size: 0.7rem;
+		z-index: 101;
+		transition:
+			transform 0.2s,
+			opacity 0.2s;
+		opacity: 0;
+		&:hover {
+			transform: scale(1.1);
+		}
+	}
+	&:hover .toggle-btn {
+		opacity: 1;
+	}
 
-      .label {
-        margin-left: 10px;
-        opacity: 1;
-        transition: opacity 0.2s;
-      }
+	.logo-container {
+		margin-bottom: 2rem;
+		height: 50px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		img {
+			max-width: 140px;
+			transition: $smooth-transition;
+			object-fit: contain;
+		}
+	}
 
-      &:hover {
-        background: rgba(255, 255, 255, 0.6);
-        color: v.$primary;
-      }
+	nav {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		flex: 1;
 
-      &.active {
-        background: v.$white;
-        color: v.$primary;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-      }
+		.nav-item {
+			display: flex;
+			align-items: center;
+			padding: 12px 16px;
+			color: #64748b;
+			text-decoration: none;
+			border-radius: 12px;
+			font-weight: 600;
+			font-size: 0.95rem;
+			transition:
+				all 0.2s ease,
+				justify-content 0.4s ease;
+			height: 48px;
 
-      // COLORES PERSONALIZADOS (Se mantienen incluso colapsado)
-      &.entrega {
-        color: #059669;
-        &.active {
-          background: #10b981;
-          color: white;
-        }
-      }
-      &.devolucion {
-        color: #b91c1c;
-        &.active {
-          background: #ef4444;
-          color: white;
-        }
-      }
-    }
-  }
+			.icon-wrapper {
+				min-width: 24px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 1.25rem;
+			}
 
-  // FOOTER Y LOGOUT
-  .footer-actions {
-    margin-top: auto;
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
-    padding-top: 1rem;
+			.label {
+				margin-left: 12px;
+				white-space: nowrap;
+				overflow: hidden;
+				opacity: 1;
+				transition:
+					width 0.4s ease,
+					margin-left 0.4s ease,
+					opacity 0.3s ease;
+			}
 
-    .logout-btn {
-      width: 100%;
-      background: transparent;
-      border: 1px solid rgba(239, 68, 68, 0.2); // Borde rojo suave
-      color: #ef4444;
-      padding: 10px;
-      border-radius: 10px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center; // Centrado si está colapsado
-      gap: 10px;
-      transition: all 0.3s;
-      white-space: nowrap;
-      overflow: hidden;
+			&:hover {
+				background: #f1f5f9;
+				color: #0f172a;
+				transform: translateX(3px);
+			}
 
-      &:hover {
-        background: #ef4444;
-        color: white;
-      }
+			&.active {
+				background: #e0e7ff;
+				color: #4338ca;
+				box-shadow: 0 2px 10px rgba(99, 102, 241, 0.15);
+			}
+			&.entrega.active {
+				background: #dcfce7;
+				color: #15803d;
+			}
+			&.devolucion.active {
+				background: #fee2e2;
+				color: #b91c1c;
+			}
+		}
+	}
 
-      .icon {
-        font-size: 1.2rem;
-      }
-    }
+	// --- FOOTER (TARJETA USUARIO) ---
+	.footer-actions {
+		margin-top: auto;
+		border-top: 1px solid #f1f5f9;
+		padding-top: 1.5rem;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
 
-    .copyright {
-      text-align: center;
-      font-size: 0.7rem;
-      color: v.$text-muted;
-      margin-top: 10px;
-    }
-  }
+		.user-mini-card {
+			display: flex;
+			align-items: center;
+			padding: 10px;
+			background: #f8fafc;
+			border-radius: 12px;
+			border: 1px solid #e2e8f0;
+			transition: $smooth-transition;
+			overflow: hidden;
+			min-height: 60px; // Asegura altura para las 2 líneas
 
-  // Ajuste para cuando está colapsado
-  &.collapsed {
-    .footer-actions {
-      .logout-btn {
-        border: none; // Sin borde cuando es solo icono
-        justify-content: center;
-        padding: 0;
-        height: 40px;
-      }
-    }
-  }
+			.avatar {
+				width: 36px;
+				height: 36px;
+				border-radius: 50%;
+				background: #e2e8f0;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				color: #94a3b8;
+				font-size: 1.5rem;
+				flex-shrink: 0;
+				transition: $smooth-transition;
+				img {
+					width: 100%;
+					height: 100%;
+					border-radius: 50%;
+					object-fit: cover;
+				}
+			}
+
+			.info {
+				margin-left: 12px;
+				display: flex;
+				flex-direction: column; // Pone uno debajo del otro
+				justify-content: center;
+				overflow: hidden;
+				white-space: nowrap;
+				opacity: 1;
+				transition:
+					width 0.4s ease,
+					margin-left 0.4s ease,
+					opacity 0.3s ease;
+
+				.name {
+					font-size: 0.85rem;
+					font-weight: 700;
+					color: #334155;
+					line-height: 1.2;
+				}
+
+				// --- ESTILOS DEL EMAIL ---
+				.email {
+					font-size: 0.75rem; // Tamaño ideal
+					color: #64748b; // Gris suave
+					margin-top: 2px;
+					text-overflow: ellipsis;
+					overflow: hidden;
+					max-width: 140px; // Corta si es muy largo
+					display: block;
+				}
+			}
+		}
+
+		.logout-btn {
+			width: 100%;
+			height: 45px;
+			background: white;
+			border: 1px solid #fecaca;
+			color: #ef4444;
+			border-radius: 12px;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			padding: 0 16px;
+			font-weight: 600;
+			transition:
+				all 0.2s ease,
+				justify-content 0.4s ease,
+				width 0.4s ease;
+			white-space: nowrap;
+			overflow: hidden;
+
+			.icon-wrapper {
+				font-size: 1.1rem;
+				display: flex;
+				align-items: center;
+				flex-shrink: 0;
+			}
+
+			.label {
+				margin-left: 10px;
+				white-space: nowrap;
+				overflow: hidden;
+				opacity: 1;
+				transition:
+					width 0.4s ease,
+					margin-left 0.4s ease,
+					opacity 0.3s ease;
+			}
+
+			&:hover {
+				background: #fee2e2;
+				color: #991b1b;
+			}
+		}
+
+		.copyright {
+			text-align: center;
+			font-size: 0.7rem;
+			color: #cbd5e1;
+			margin-top: 5px;
+			white-space: nowrap;
+			overflow: hidden;
+			transition: $smooth-transition;
+		}
+	}
 }
