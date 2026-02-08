@@ -1,7 +1,46 @@
-const { Router } = require('express');
+const { Router } = require("express");
 const router = Router();
-const { login } = require('../controllers/authController');
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
-router.post('/login', login);
+// Importar controladores y middleware
+const {
+	login,
+	getPerfil,
+	updatePerfil,
+} = require("../controllers/authController");
+const verifyToken = require("../middlewares/authMiddleware");
+
+// --- CONFIGURACIÓN DE MULTER (Subida de Imágenes) ---
+
+// Crear carpeta uploads si no existe (sube 2 niveles desde src/routes)
+const uploadDir = path.join(__dirname, "../../uploads");
+if (!fs.existsSync(uploadDir)) {
+	fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configuración de almacenamiento
+const storage = multer.diskStorage({
+	destination: (req, file, cb) => {
+		cb(null, uploadDir);
+	},
+	filename: (req, file, cb) => {
+		// Nombre único: perfil-TIMESTAMP-RANDOM.ext
+		const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+		cb(null, "perfil-" + uniqueSuffix + path.extname(file.originalname));
+	},
+});
+
+const upload = multer({ storage: storage });
+
+// --- DEFINICIÓN DE RUTAS ---
+
+// Ruta Pública
+router.post("/login", login);
+
+// Rutas Protegidas (Requieren Token)
+router.get("/perfil", verifyToken, getPerfil);
+router.put("/perfil", verifyToken, upload.single("foto"), updatePerfil);
 
 module.exports = router;

@@ -184,8 +184,7 @@ const Historial = () => {
 							<th style={{ padding: "12px" }}>Equipo</th>
 							<th style={{ padding: "12px" }}>Empleado</th>
 							<th style={{ padding: "12px" }}>Auditoría</th>
-							<th style={{ padding: "12px" }}>Tiempo de Uso</th>{" "}
-							{/* Título actualizado */}
+							<th style={{ padding: "12px" }}>Tiempo de Uso</th>
 							<th style={{ padding: "12px", textAlign: "center" }}>Estado</th>
 						</tr>
 					</thead>
