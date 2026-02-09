@@ -11,7 +11,20 @@
     rgba(v.$primary, 0.05),
     transparent 60%
   );
-
+  .login-image {
+    width: 350px;
+    height: 350px;
+    background-color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    @include v.glass-card;
+    border-radius: 10px 0 0 10px;
+    img {
+      width: 200px;
+    }
+  }
   .login-card {
     @include v.glass-card; // Mixin de cristal
     width: 100%;

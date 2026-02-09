@@ -4,19 +4,21 @@ import { toast } from 'react-toastify';
 import api from '../../services/api';
 import './FormStyles.scss';
 
-// Importamos el Select personalizado
-import CustomSelect from '../../components/Select/CustomSelect';
+// Importamos el Select CREATABLE de react-select
+import CreatableSelect from 'react-select/creatable';
 
 const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
-  // Estado inicial
-  // Agregamos fecha_compra al estado
   const [formData, setFormData] = useState({
     marca: '',
     modelo: '',
     serie: '',
-    estado: 'operativo',
+    estado: 'operativo', // Valor por defecto fijo
     fecha_compra: '',
   });
+
+  // Estado para las marcas del select
+  const [marcasOptions, setMarcasOptions] = useState([]);
+  const [loadingMarcas, setLoadingMarcas] = useState(false);
 
   // Estado para especificaciones dinámicas
   const [specsList, setSpecsList] = useState([
@@ -24,33 +26,40 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
     { key: 'Procesador', value: '' },
   ]);
 
-  // Opciones para el Select de Estado
-  const estadoOptions = [
-    { value: 'operativo', label: 'Operativo' },
-    { value: 'mantenimiento', label: 'Mantenimiento' },
-    { value: 'malogrado', label: 'Malogrado' },
-  ];
+  // 1. CARGAR MARCAS AL INICIO
+  useEffect(() => {
+    const fetchMarcas = async () => {
+      try {
+        const res = await api.get('/equipos/marcas');
+        const options = res.data.map((m) => ({
+          value: m.nombre,
+          label: m.nombre,
+        }));
+        setMarcasOptions(options);
+      } catch (error) {
+        console.error('Error cargando marcas');
+      }
+    };
+    fetchMarcas();
+  }, []);
 
-  // EFECTO: Si hay un equipo para editar, rellenamos el formulario
+  // 2. RELLENAR DATOS SI ES EDICIÓN
   useEffect(() => {
     if (equipoToEdit) {
       setFormData({
         marca: equipoToEdit.marca,
         modelo: equipoToEdit.modelo,
         serie: equipoToEdit.serie,
-        estado: equipoToEdit.estado,
-        // Formateamos la fecha si existe (cortamos la parte 'T00:00:00')
+        estado: equipoToEdit.estado, // Mantiene el estado original si se edita
         fecha_compra: equipoToEdit.fecha_compra
           ? equipoToEdit.fecha_compra.split('T')[0]
           : '',
       });
 
-      // Convertir el objeto JSON de specs a nuestro Array para los inputs
       if (equipoToEdit.especificaciones) {
         const specsArray = Object.entries(equipoToEdit.especificaciones).map(
           ([key, value]) => ({ key, value }),
         );
-        // Si el array está vacío, dejamos al menos una fila
         setSpecsList(
           specsArray.length > 0 ? specsArray : [{ key: '', value: '' }],
         );
@@ -58,28 +67,47 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
     }
   }, [equipoToEdit]);
 
-  // Manejador para inputs de texto normales
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Manejadores para Specs Dinámicas
+  // --- LÓGICA DE MARCAS ---
+  const handleMarcaChange = (newValue) => {
+    setFormData({ ...formData, marca: newValue ? newValue.value : '' });
+  };
+
+  const handleCreateMarca = async (inputValue) => {
+    setLoadingMarcas(true);
+    try {
+      const res = await api.post('/equipos/marcas', { nombre: inputValue });
+      const nuevaMarca = res.data;
+      const newOption = { value: nuevaMarca.nombre, label: nuevaMarca.nombre };
+
+      setLoadingMarcas(false);
+      setMarcasOptions((prev) => [...prev, newOption]);
+      setFormData({ ...formData, marca: newOption.value });
+
+      toast.success(`Marca "${newOption.label}" agregada`);
+    } catch (error) {
+      console.error(error);
+      toast.error('Error al crear marca');
+      setLoadingMarcas(false);
+    }
+  };
+
+  // --- LÓGICA DE SPECS ---
   const handleSpecChange = (index, field, value) => {
     const newSpecs = [...specsList];
     newSpecs[index][field] = value;
     setSpecsList(newSpecs);
   };
-
   const addSpecRow = () => setSpecsList([...specsList, { key: '', value: '' }]);
-
   const removeSpecRow = (index) =>
     setSpecsList(specsList.filter((_, i) => i !== index));
 
-  // Envío del formulario
+  // --- SUBMIT ---
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Convertir Array a Objeto JSON para la BD
     const specsObject = specsList.reduce((acc, item) => {
       if (item.key && item.value) acc[item.key] = item.value;
       return acc;
@@ -89,19 +117,46 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
 
     try {
       if (equipoToEdit) {
-        // MODO EDICIÓN (PUT)
         await api.put(`/equipos/${equipoToEdit.id}`, payload);
         toast.success('Equipo actualizado correctamente');
       } else {
-        // MODO CREACIÓN (POST)
         await api.post('/equipos', payload);
         toast.success('Equipo registrado correctamente');
       }
-      onSuccess(); // Cerrar modal y recargar tabla
+      onSuccess();
     } catch (error) {
       console.error(error);
-      toast.error('Error al guardar');
+      toast.error(error.response?.data?.error || 'Error al guardar');
     }
+  };
+
+  // ESTILOS PERSONALIZADOS PARA REACT-SELECT
+  const customSelectStyles = {
+    control: (provided, state) => ({
+      ...provided,
+      background: 'rgba(255, 255, 255, 0.8)',
+      borderColor: state.isFocused ? '#7c3aed' : '#e2e8f0',
+      borderRadius: '8px',
+      padding: '2px',
+      boxShadow: state.isFocused ? '0 0 0 1px #7c3aed' : 'none',
+      '&:hover': { borderColor: '#7c3aed' },
+    }),
+    menu: (provided) => ({
+      ...provided,
+      borderRadius: '8px',
+      overflow: 'hidden',
+      zIndex: 9999,
+    }),
+    option: (provided, state) => ({
+      ...provided,
+      backgroundColor: state.isSelected
+        ? '#7c3aed'
+        : state.isFocused
+          ? '#f3f0ff'
+          : 'white',
+      color: state.isSelected ? 'white' : '#334155',
+      cursor: 'pointer',
+    }),
   };
 
   return (
@@ -110,16 +165,23 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
       onSubmit={handleSubmit}
     >
       <div className='form-row'>
+        {/* SELECT INTELIGENTE DE MARCA */}
         <div className='input-group'>
           <label>Marca</label>
-          <input
-            name='marca'
-            value={formData.marca}
-            onChange={handleChange}
-            required
-            placeholder='Ej: Dell'
+          <CreatableSelect
+            isClearable
+            isDisabled={loadingMarcas}
+            isLoading={loadingMarcas}
+            onChange={handleMarcaChange}
+            onCreateOption={handleCreateMarca}
+            options={marcasOptions}
+            value={marcasOptions.find((op) => op.value === formData.marca)}
+            styles={customSelectStyles}
+            placeholder='Agregar Marca'
+            formatCreateLabel={(inputValue) => `Crear marca "${inputValue}"`}
           />
         </div>
+
         <div className='input-group'>
           <label>Modelo</label>
           <input
@@ -144,7 +206,6 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
           />
         </div>
 
-        {/* NUEVO INPUT DE FECHA */}
         <div className='input-group'>
           <label>Fecha de Compra</label>
           <input
@@ -152,27 +213,11 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
             name='fecha_compra'
             value={formData.fecha_compra}
             onChange={handleChange}
-            // Puedes agregar 'required' si es obligatorio
           />
         </div>
       </div>
 
-      <div className='form-row'>
-        <div
-          className='input-group'
-          style={{ width: '100%' }}
-        >
-          <label>Estado</label>
-          <CustomSelect
-            options={estadoOptions}
-            value={estadoOptions.find((op) => op.value === formData.estado)}
-            onChange={(selected) =>
-              setFormData({ ...formData, estado: selected?.value || '' })
-            }
-            placeholder='Seleccione estado...'
-          />
-        </div>
-      </div>
+      {/* SE ELIMINÓ LA SECCIÓN DEL SELECT DE ESTADO */}
 
       <div className='specs-section'>
         <h4>Especificaciones Técnicas</h4>

@@ -439,6 +439,38 @@
       text-align: center;
       margin: 0;
     }
+    .observation-alert {
+      background-color: #fef2f2; // Fondo rojo muy suave
+      border: 1px solid #fca5a5; // Borde rojo suave
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+
+      h5 {
+        margin: 0;
+        color: #991b1b; // Rojo oscuro
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        svg {
+          font-size: 1rem;
+        }
+      }
+
+      p {
+        margin: 0;
+        color: #7f1d1d;
+        font-size: 0.95rem;
+        line-height: 1.4;
+      }
+    }
   }
 
   .no-data {

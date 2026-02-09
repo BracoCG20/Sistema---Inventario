@@ -158,10 +158,18 @@ const Dashboard = () => {
 
       {/* --- TARJETAS KPI --- */}
       <div className='stats-grid'>
-        <div className='stat-card'>
+        <div
+          className='stat-card'
+          style={{ backgroundColor: '#1e293b' }}
+        >
           <div className='info'>
             <h3>Total Equipos</h3>
-            <span className='number'>{stats.total}</span>
+            <span
+              className='number'
+              style={{ color: '#fff' }}
+            >
+              {stats.total}
+            </span>
           </div>
           <div className='icon-box purple'>
             <FaLaptop />
@@ -169,17 +177,25 @@ const Dashboard = () => {
         </div>
         <div className='stat-card'>
           <div className='info'>
-            <h3>Asignados</h3>
+            <h3>Equipos Asignados</h3>
             <span className='number'>{stats.asignados}</span>
           </div>
           <div className='icon-box blue'>
             <FaHandHolding />
           </div>
         </div>
-        <div className='stat-card'>
+        <div
+          className='stat-card'
+          style={{ backgroundColor: '#1e293b' }}
+        >
           <div className='info'>
-            <h3>Disponibles</h3>
-            <span className='number'>{stats.disponibles}</span>
+            <h3>Equipos Disponibles</h3>
+            <span
+              className='number'
+              style={{ color: '#fff' }}
+            >
+              {stats.disponibles}
+            </span>
           </div>
           <div className='icon-box green'>
             <FaCheckCircle />
@@ -187,7 +203,7 @@ const Dashboard = () => {
         </div>
         <div className='stat-card'>
           <div className='info'>
-            <h3>Inoperativos</h3>
+            <h3>Equipos Inoperativos</h3>
             <span className='number'>{stats.mantenimiento}</span>
           </div>
           <div className='icon-box orange'>
