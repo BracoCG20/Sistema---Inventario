@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import api from "../../services/api";
 import * as XLSX from "xlsx";
 import { toast } from "react-toastify";
-// Iconos
 import {
 	FaPlus,
 	FaUserTie,
@@ -15,29 +14,29 @@ import {
 	FaTimes,
 	FaCheck,
 	FaFileExcel,
-	FaSearch, // Para el buscador
-	FaUndo, // Para el botón de reactivar
+	FaSearch,
+	FaUndo,
 	FaChevronLeft,
 	FaChevronRight,
 } from "react-icons/fa";
 import Modal from "../../components/Modal/Modal";
 import AddUsuarioForm from "./AddUsuarioForm";
-import "../Equipos/Equipos.scss";
+import "./Usuarios.scss"; // Importamos el nuevo SCSS
 
 const Usuarios = () => {
 	const [usuarios, setUsuarios] = useState([]);
 	const [loading, setLoading] = useState(true);
-	const [searchTerm, setSearchTerm] = useState(""); // Estado del buscador
+	const [searchTerm, setSearchTerm] = useState("");
 
-	// --- PAGINACIÓN ---
+	// Paginación
 	const [currentPage, setCurrentPage] = useState(1);
-	const itemsPerPage = 8; // Máximo 8 por página
+	const itemsPerPage = 8;
 
-	// --- ESTADOS DE MODALES ---
+	// Modales
 	const [isFormModalOpen, setIsFormModalOpen] = useState(false);
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-	// --- ESTADOS DE SELECCIÓN ---
+	// Selección
 	const [usuarioToEdit, setUsuarioToEdit] = useState(null);
 	const [usuarioToDelete, setUsuarioToDelete] = useState(null);
 
@@ -60,12 +59,10 @@ const Usuarios = () => {
 		fetchUsuarios();
 	}, []);
 
-	// Resetear página al buscar
 	useEffect(() => {
 		setCurrentPage(1);
 	}, [searchTerm]);
 
-	// --- FILTRADO ---
 	const filteredUsuarios = usuarios.filter((u) => {
 		const term = searchTerm.toLowerCase();
 		return (
@@ -75,7 +72,6 @@ const Usuarios = () => {
 		);
 	});
 
-	// --- PAGINACIÓN LÓGICA ---
 	const indexOfLastItem = currentPage * itemsPerPage;
 	const indexOfFirstItem = indexOfLastItem - itemsPerPage;
 	const currentItems = filteredUsuarios.slice(
@@ -83,12 +79,9 @@ const Usuarios = () => {
 		indexOfLastItem,
 	);
 	const totalPages = Math.ceil(filteredUsuarios.length / itemsPerPage);
-
 	const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-	// --- EXPORTAR EXCEL ---
 	const exportarExcel = () => {
-		// Exportamos TODOS los filtrados (o todos los usuarios si no hay filtro)
 		const dataParaExcel = filteredUsuarios.map((u) => ({
 			ID: u.id,
 			Estado: u.activo ? "ACTIVO" : "INACTIVO",
@@ -100,10 +93,9 @@ const Usuarios = () => {
 			Cargo: u.cargo,
 			Género: u.genero,
 			Teléfono: u.telefono || "-",
-			"Registrado Por (Nombre)": u.creador_nombre || "Sistema",
-			"Registrado Por (Email)": u.creador_email || "-",
+			"Registrado Por": u.creador_nombre || "Sistema",
+			"Email Registro": u.creador_email || "-",
 		}));
-
 		const ws = XLSX.utils.json_to_sheet(dataParaExcel);
 		const wb = XLSX.utils.book_new();
 		XLSX.utils.book_append_sheet(wb, ws, "Colaboradores");
@@ -118,14 +110,10 @@ const Usuarios = () => {
 		setUsuarioToEdit(user);
 		setIsFormModalOpen(true);
 	};
-
-	// Confirmar Baja
 	const confirmDelete = (user) => {
 		setUsuarioToDelete(user);
 		setIsDeleteModalOpen(true);
 	};
-
-	// Ejecutar Baja (Soft Delete)
 	const executeDelete = async () => {
 		if (!usuarioToDelete) return;
 		try {
@@ -135,87 +123,55 @@ const Usuarios = () => {
 			setIsDeleteModalOpen(false);
 			setUsuarioToDelete(null);
 		} catch (error) {
-			console.error(error);
 			toast.error("Error al anular usuario");
 		}
 	};
-
-	// NUEVO: Ejecutar Reactivación
 	const handleActivate = async (user) => {
 		try {
 			await api.put(`/usuarios/${user.id}/activate`);
 			toast.success(`Colaborador ${user.nombres} reactivado`);
 			fetchUsuarios();
 		} catch (error) {
-			console.error(error);
 			toast.error("Error al reactivar usuario");
 		}
 	};
-
 	const handleFormSuccess = () => {
 		setIsFormModalOpen(false);
 		fetchUsuarios();
 	};
 
-	if (loading) return <div style={{ padding: "2rem" }}>Cargando...</div>;
+	if (loading) return <div className='loading-state'>Cargando...</div>;
 
 	return (
-		<div className='equipos-container'>
+		<div className='usuarios-container'>
 			<div className='page-header'>
 				<h1>Directorio de Personal</h1>
-
-				<div style={{ display: "flex", gap: "10px" }}>
+				<div className='header-actions'>
 					<button
 						onClick={exportarExcel}
-						className='btn-add'
-						style={{ background: "#10b981", borderColor: "#10b981" }}
+						className='btn-action-header btn-excel'
 					>
 						<FaFileExcel /> Exportar Excel
 					</button>
-
-					<button className='btn-add' onClick={handleAdd}>
+					<button className='btn-action-header btn-add' onClick={handleAdd}>
 						<FaPlus /> Nuevo Colaborador
 					</button>
 				</div>
 			</div>
 
-			{/* --- BARRA DE BÚSQUEDA NUEVA --- */}
-			<div
-				style={{
-					marginBottom: "20px",
-					background: "white",
-					padding: "10px 15px",
-					borderRadius: "8px",
-					border: "1px solid #e2e8f0",
-					display: "flex",
-					alignItems: "center",
-					gap: "10px",
-				}}
-			>
+			<div className='search-bar'>
 				<FaSearch color='#94a3b8' />
 				<input
 					type='text'
 					placeholder='Buscar por Nombre o DNI...'
 					value={searchTerm}
 					onChange={(e) => setSearchTerm(e.target.value)}
-					style={{
-						border: "none",
-						outline: "none",
-						width: "100%",
-						fontSize: "0.95rem",
-						color: "#334155",
-					}}
 				/>
 			</div>
 
 			<div className='table-container'>
 				{currentItems.length === 0 ? (
-					<div
-						className='no-data'
-						style={{ padding: "2rem", textAlign: "center", color: "#94a3b8" }}
-					>
-						No se encontraron colaboradores.
-					</div>
+					<div className='no-data'>No se encontraron colaboradores.</div>
 				) : (
 					<table>
 						<thead>
@@ -226,86 +182,45 @@ const Usuarios = () => {
 								<th>Correo Electrónico</th>
 								<th>Contacto</th>
 								<th>Cargo</th>
-								<th style={{ textAlign: "center" }}>Acciones</th>
+								<th className='center'>Acciones</th>
 							</tr>
 						</thead>
 						<tbody>
 							{currentItems.map((user) => {
 								const isWoman = user.genero === "mujer";
-								const rowStyle = !user.activo
-									? { opacity: 0.7, background: "#f8fafc" } // Un poco más visible que antes
-									: {};
 
 								return (
-									<tr key={user.id} style={rowStyle}>
+									<tr
+										key={user.id}
+										className={!user.activo ? "inactive-row" : ""}
+									>
 										<td>
-											{user.activo ? (
-												<span
-													className='status-badge operativo'
-													style={{ fontSize: "0.65rem" }}
-												>
-													ACTIVO
-												</span>
-											) : (
-												<span
-													className='status-badge malogrado'
-													style={{ fontSize: "0.65rem" }}
-												>
-													INACTIVO
-												</span>
-											)}
-										</td>
-
-										<td style={{ fontWeight: "bold", color: "#64748b" }}>
-											{user.dni}
-										</td>
-
-										<td>
-											<div
-												style={{
-													display: "flex",
-													alignItems: "center",
-													gap: "10px",
-												}}
+											<span
+												className={`status-badge ${user.activo ? "operativo" : "malogrado"}`}
 											>
+												{user.activo ? "ACTIVO" : "INACTIVO"}
+											</span>
+										</td>
+
+										<td>
+											<span className='dni-text'>{user.dni}</span>
+										</td>
+
+										<td>
+											<div className='user-avatar-cell'>
 												<div
-													style={{
-														background: user.activo
-															? isWoman
-																? "#fce7f3"
-																: "#e0e7ff"
-															: "#e2e8f0",
-														color: user.activo
-															? isWoman
-																? "#db2777"
-																: "#4338ca"
-															: "#94a3b8",
-														padding: "10px",
-														borderRadius: "50%",
-														display: "flex",
-														alignItems: "center",
-														justifyContent: "center",
-														width: "40px",
-														height: "40px",
-													}}
+													className={`avatar-circle ${!user.activo ? "inactive" : isWoman ? "female" : "male"}`}
 												>
 													{isWoman ? <FaUser /> : <FaUserTie />}
 												</div>
-												<div
-													style={{ display: "flex", flexDirection: "column" }}
-												>
+												<div className='user-info'>
 													<span
-														style={{
-															fontWeight: "600",
-															color: user.activo ? "#1e293b" : "#94a3b8",
-														}}
+														className={`name ${!user.activo ? "inactive" : ""}`}
 													>
 														{user.nombres} {user.apellidos}
 													</span>
 													{user.creador_nombre && (
-														<span
-															style={{ fontSize: "0.65rem", color: "#94a3b8" }}
-														>
+														<span className='audit-text'>
 															Reg: {user.creador_nombre}
 														</span>
 													)}
@@ -314,18 +229,8 @@ const Usuarios = () => {
 										</td>
 
 										<td>
-											<div
-												style={{
-													display: "flex",
-													alignItems: "center",
-													color: "#64748b",
-													fontSize: "0.9rem",
-												}}
-											>
-												<FaEnvelope
-													style={{ marginRight: "8px", color: "#94a3b8" }}
-												/>
-												{user.correo}
+											<div className='email-cell'>
+												<FaEnvelope /> {user.correo}
 											</div>
 										</td>
 
@@ -335,85 +240,45 @@ const Usuarios = () => {
 													href={`https://wa.me/${user.telefono.replace(/\s+/g, "")}`}
 													target='_blank'
 													rel='noreferrer'
-													style={{
-														display: "inline-flex",
-														alignItems: "center",
-														gap: "5px",
-														background: "#dcfce7",
-														color: "#16a34a",
-														padding: "4px 10px",
-														borderRadius: "20px",
-														textDecoration: "none",
-														fontWeight: "600",
-														fontSize: "0.8rem",
-														border: "1px solid #bbf7d0",
-													}}
+													className='whatsapp-btn'
 												>
-													<FaWhatsapp style={{ fontSize: "1rem" }} />{" "}
-													{user.telefono}
+													<FaWhatsapp /> {user.telefono}
 												</a>
 											) : (
-												<span style={{ color: "#cbd5e1" }}>-</span>
+												<span className='no-contact'>-</span>
 											)}
 										</td>
 
 										<td>
-											<div style={{ display: "flex", flexDirection: "column" }}>
-												<span style={{ fontSize: "0.85rem", color: "#475569" }}>
-													{user.empresa}
-												</span>
-												<span
-													className='status-badge mantenimiento'
-													style={{
-														marginTop: "4px",
-														width: "fit-content",
-														fontSize: "0.65rem",
-													}}
-												>
-													{user.cargo}
-												</span>
+											<div className='cargo-cell'>
+												<span className='empresa'>{user.empresa}</span>
+												<span className='cargo-badge'>{user.cargo}</span>
 											</div>
 										</td>
 
-										<td style={{ textAlign: "center" }}>
-											<div
-												style={{
-													display: "flex",
-													gap: "8px",
-													justifyContent: "center",
-												}}
-											>
+										<td>
+											<div className='actions-cell'>
 												{user.activo ? (
-													// OPCIONES SI ESTÁ ACTIVO: EDITAR Y DAR DE BAJA
 													<>
 														<button
-															className='action-btn'
+															className='action-btn edit'
 															onClick={() => handleEdit(user)}
-															style={{ color: "#f59e0b" }}
 															title='Editar'
 														>
 															<FaEdit />
 														</button>
 														<button
-															className='action-btn'
+															className='action-btn delete'
 															onClick={() => confirmDelete(user)}
-															style={{ color: "#ef4444" }}
 															title='Dar de baja'
 														>
 															<FaBan />
 														</button>
 													</>
 												) : (
-													// OPCIÓN SI ESTÁ INACTIVO: REACTIVAR
 													<button
-														className='action-btn'
+														className='action-btn activate'
 														onClick={() => handleActivate(user)}
-														style={{
-															color: "#10b981",
-															background: "#ecfdf5",
-															padding: "5px",
-															borderRadius: "50%",
-														}}
 														title='Reactivar Usuario'
 													>
 														<FaUndo />
@@ -428,52 +293,25 @@ const Usuarios = () => {
 					</table>
 				)}
 
-				{/* --- PAGINACIÓN FOOTER --- */}
 				{filteredUsuarios.length > 0 && (
-					<div
-						style={{
-							display: "flex",
-							justifyContent: "space-between",
-							alignItems: "center",
-							padding: "15px 20px",
-							borderTop: "1px solid #e2e8f0",
-							background: "#f8fafc",
-						}}
-					>
-						<div style={{ color: "#64748b", fontSize: "0.9rem" }}>
+					<div className='pagination-footer'>
+						<div className='info'>
 							Mostrando <strong>{indexOfFirstItem + 1}</strong> a{" "}
 							<strong>
 								{Math.min(indexOfLastItem, filteredUsuarios.length)}
 							</strong>{" "}
 							de <strong>{filteredUsuarios.length}</strong>
 						</div>
-						<div style={{ display: "flex", gap: "5px" }}>
+						<div className='controls'>
 							<button
 								onClick={() => paginate(currentPage - 1)}
 								disabled={currentPage === 1}
-								style={{
-									padding: "6px 12px",
-									border: "1px solid #e2e8f0",
-									borderRadius: "6px",
-									background: "white",
-									cursor: currentPage === 1 ? "not-allowed" : "pointer",
-									color: "#64748b",
-								}}
 							>
 								<FaChevronLeft size={12} />
 							</button>
 							<button
 								onClick={() => paginate(currentPage + 1)}
 								disabled={currentPage === totalPages}
-								style={{
-									padding: "6px 12px",
-									border: "1px solid #e2e8f0",
-									borderRadius: "6px",
-									background: "white",
-									cursor:
-										currentPage === totalPages ? "not-allowed" : "pointer",
-									color: "#64748b",
-								}}
 							>
 								<FaChevronRight size={12} />
 							</button>
@@ -499,29 +337,12 @@ const Usuarios = () => {
 				onClose={() => setIsDeleteModalOpen(false)}
 				title='Confirmar Baja'
 			>
-				<div style={{ padding: "1rem", textAlign: "center" }}>
-					<div
-						style={{
-							fontSize: "3rem",
-							color: "#f59e0b",
-							marginBottom: "1rem",
-							background: "#fffbeb",
-							width: "80px",
-							height: "80px",
-							borderRadius: "50%",
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "center",
-							margin: "0 auto 1rem auto",
-						}}
-					>
+				<div className='confirm-modal-content'>
+					<div className='warning-icon'>
 						<FaExclamationTriangle />
 					</div>
-
-					<h3 style={{ color: "#1e293b", marginBottom: "0.5rem" }}>
-						¿Estás seguro?
-					</h3>
-					<p style={{ color: "#64748b", marginBottom: "2rem" }}>
+					<h3>¿Estás seguro?</h3>
+					<p>
 						Estás a punto de dar de baja a{" "}
 						<strong>
 							{usuarioToDelete?.nombres} {usuarioToDelete?.apellidos}
@@ -529,43 +350,14 @@ const Usuarios = () => {
 						.<br />
 						Pasará a estado <strong>INACTIVO</strong>.
 					</p>
-
-					<div
-						style={{ display: "flex", gap: "1rem", justifyContent: "center" }}
-					>
+					<div className='modal-actions'>
 						<button
+							className='btn-cancel'
 							onClick={() => setIsDeleteModalOpen(false)}
-							style={{
-								padding: "10px 20px",
-								borderRadius: "8px",
-								border: "1px solid #cbd5e1",
-								background: "white",
-								color: "#64748b",
-								cursor: "pointer",
-								fontWeight: "600",
-								display: "flex",
-								alignItems: "center",
-								gap: "5px",
-							}}
 						>
 							<FaTimes /> Cancelar
 						</button>
-						<button
-							onClick={executeDelete}
-							style={{
-								padding: "10px 20px",
-								borderRadius: "8px",
-								border: "none",
-								background: "#ef4444",
-								color: "white",
-								cursor: "pointer",
-								fontWeight: "600",
-								display: "flex",
-								alignItems: "center",
-								gap: "5px",
-								boxShadow: "0 4px 6px -1px rgba(239, 68, 68, 0.3)",
-							}}
-						>
+						<button className='btn-confirm' onClick={executeDelete}>
 							<FaCheck /> Confirmar Baja
 						</button>
 					</div>
