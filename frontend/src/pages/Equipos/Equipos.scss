@@ -24,7 +24,6 @@
 			gap: 12px;
 		}
 
-		// Botones Header (Agregar / Excel)
 		.btn-action-header {
 			display: flex;
 			align-items: center;
@@ -37,7 +36,7 @@
 			cursor: pointer;
 			color: white;
 			transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 
 			&:hover {
 				transform: translateY(-2px);
@@ -70,7 +69,7 @@
 		align-items: center;
 		gap: 12px;
 		transition: all 0.3s ease;
-		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 
 		&:focus-within {
 			border-color: v.$primary;
@@ -89,6 +88,7 @@
 		}
 		svg {
 			font-size: 1.1rem;
+			color: #94a3b8;
 		}
 	}
 
@@ -96,7 +96,7 @@
 	.table-container {
 		background: white;
 		border-radius: 16px;
-		box-shadow: 0 4px 25px rgba(0, 0, 0, 0.05); // Sombra más suave y difusa
+		box-shadow: 0 4px 25px rgba(0, 0, 0, 0.05);
 		border: 1px solid #f1f5f9;
 		overflow: hidden;
 
@@ -105,7 +105,6 @@
 			border-collapse: collapse;
 
 			thead tr {
-				// FONDO DE CABECERA CON VIDA (Un toque de tu color primario muy suave)
 				background-color: #f8fafc;
 				border-bottom: 2px solid #e2e8f0;
 
@@ -121,6 +120,9 @@
 					&.center {
 						text-align: center;
 					}
+					&.icon-column {
+						width: 60px;
+					}
 				}
 			}
 
@@ -129,7 +131,7 @@
 				transition: background-color 0.2s ease;
 
 				&:hover {
-					background-color: #f8fafc; // Highlight sutil
+					background-color: #f8fafc;
 				}
 
 				td {
@@ -139,24 +141,22 @@
 			}
 		}
 
-		// --- COMPONENTES INTERNOS DE LA TABLA ---
+		// --- COMPONENTES INTERNOS ---
 
-		// Icono del equipo (Caja morada)
 		.device-icon-box {
 			width: 48px;
 			height: 48px;
 			border-radius: 12px;
-			background-color: #f3f0ff; // Fondo morado muy claro
+			background-color: #f3f0ff;
 			border: 1px solid #e9d5ff;
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			color: #7c3aed; // Icono morado vibrante
+			color: #7c3aed;
 			font-size: 1.5rem;
 			margin: 0 auto;
 		}
 
-		// Textos de información
 		.info-cell {
 			display: flex;
 			flex-direction: column;
@@ -170,14 +170,8 @@
 				color: #64748b;
 				font-size: 0.85rem;
 			}
-			.audit-text {
-				font-size: 0.7rem;
-				color: #94a3b8;
-				margin-top: 2px;
-			} // Texto pequeño de auditoría
 		}
 
-		// Badge Código de Barras
 		.barcode-badge {
 			display: inline-flex;
 			align-items: center;
@@ -190,9 +184,11 @@
 			padding: 6px 10px;
 			border-radius: 8px;
 			border: 1px solid #e2e8f0;
+			svg {
+				color: #94a3b8;
+			}
 		}
 
-		// Fecha
 		.date-cell {
 			display: flex;
 			align-items: center;
@@ -200,19 +196,56 @@
 			font-size: 0.9rem;
 			gap: 8px;
 			font-weight: 500;
+			.no-date {
+				color: #ccc;
+			}
+			svg {
+				color: #94a3b8;
+			}
 		}
 
-		// --- BOTONES DE ACCIÓN (Corregidos) ---
+		// --- NUEVO ESTILO PARA LA CELDA DE AUDITORÍA ---
+		.audit-cell {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+
+			.icon {
+				color: #4f46e5;
+				font-size: 1rem;
+			}
+
+			.details {
+				display: flex;
+				flex-direction: column;
+				.name {
+					font-weight: 600;
+					color: #334155;
+					font-size: 0.85rem;
+				}
+				.email {
+					color: #94a3b8;
+					font-size: 0.75rem;
+				}
+			}
+
+			.system-text {
+				color: #cbd5e1;
+				font-style: italic;
+				font-size: 0.85rem;
+			}
+		}
+
 		.actions-cell {
 			display: flex;
-			gap: 8px; // Espacio entre botones
+			gap: 8px;
 
 			.action-btn {
 				width: 36px;
 				height: 36px;
 				border-radius: 8px;
-				border: none; // SIN BORDE POR DEFECTO
-				background-color: transparent; // FONDO TRANSPARENTE
+				border: none;
+				background-color: transparent;
 				cursor: pointer;
 				display: flex;
 				align-items: center;
@@ -220,7 +253,6 @@
 				font-size: 1.1rem;
 				transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
-				// Colores y fondos al pasar el mouse
 				&.view {
 					color: #64748b;
 					&:hover {
@@ -249,11 +281,11 @@
 	// --- PAGINACIÓN ---
 	.pagination-footer {
 		display: flex;
-		justify-content: space-between;
+		justifycontent: space-between;
 		align-items: center;
 		padding: 20px 25px;
 		border-top: 1px solid #e2e8f0;
-		background-color: white; // Fondo blanco limpio al final
+		background-color: white;
 
 		.info {
 			color: #64748b;
@@ -267,7 +299,6 @@
 		.controls {
 			display: flex;
 			gap: 8px;
-
 			button {
 				width: 32px;
 				height: 32px;
@@ -286,7 +317,6 @@
 					cursor: not-allowed;
 					background-color: #f8fafc;
 				}
-
 				&:hover:not(:disabled) {
 					background-color: v.$primary;
 					color: white;
@@ -297,7 +327,7 @@
 		}
 	}
 
-	// --- ESTILOS DEL MODAL (SPECS) - SINTAXIS CORREGIDA ---
+	// --- MODAL ---
 	.specs-grid {
 		.header-specs {
 			display: flex;
@@ -306,7 +336,6 @@
 			padding-bottom: 1.5rem;
 			border-bottom: 1px solid #eee;
 			margin-bottom: 1.5rem;
-
 			.big-icon {
 				width: 80px;
 				height: 80px;
@@ -318,7 +347,6 @@
 				justify-content: center;
 				font-size: 2.5rem;
 			}
-
 			h3 {
 				margin: 0;
 				color: v.$text-main;
@@ -328,7 +356,6 @@
 				margin-top: 5px;
 			}
 		}
-
 		h4 {
 			font-size: 0.85rem;
 			color: v.$text-muted;
@@ -340,27 +367,27 @@
 				margin-top: 1.5rem;
 			}
 		}
-
 		.grid-2-col {
 			display: grid;
 			grid-template-columns: 1fr 1fr;
 			gap: 1rem;
 			margin-bottom: 1.5rem;
 		}
-
 		.info-box {
 			background-color: #f8fafc;
 			padding: 15px;
 			border-radius: 10px;
 			border: 1px solid #e2e8f0;
-
 			&.light {
 				background-color: #f1f5f9;
 				display: flex;
 				align-items: center;
 				gap: 12px;
 			}
-
+			.icon-barcode {
+				font-size: 1.5rem;
+				color: #64748b;
+			}
 			.label {
 				display: block;
 				font-size: 0.75rem;
@@ -381,19 +408,16 @@
 				font-size: 1rem;
 			}
 		}
-
 		.specs-list {
 			background-color: #fff;
 			border: 1px solid #e2e8f0;
 			border-radius: 10px;
 			overflow: hidden;
-
 			.spec-item {
 				display: flex;
-				justify-content: space-between;
+				justifycontent: space-between;
 				padding: 12px 15px;
 				border-bottom: 1px solid #f1f5f9;
-
 				&.odd {
 					background-color: #f8fafc;
 				}
@@ -408,6 +432,12 @@
 					color: v.$text-main;
 				}
 			}
+		}
+		.no-data {
+			padding: 15px;
+			color: #cbd5e1;
+			text-align: center;
+			margin: 0;
 		}
 	}
 
@@ -425,33 +455,32 @@
 	}
 }
 
-// --- BADGES GLOBALES ---
+// --- BADGES ---
 .status-badge {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	padding: 4px 12px;
-	border-radius: 20px; // Forma de píldora más estilizada
+	border-radius: 20px;
 	font-size: 0.7rem;
 	font-weight: 700;
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
 	line-height: 1;
 	white-space: nowrap;
-
 	&.operativo {
 		background-color: #dcfce7;
 		color: #166534;
 		border: 1px solid #bbf7d0;
-	} // Verde vivo
+	}
 	&.mantenimiento {
 		background-color: #ffedd5;
 		color: #9a3412;
 		border: 1px solid #fed7aa;
-	} // Naranja vivo
+	}
 	&.malogrado {
 		background-color: #fee2e2;
 		color: #991b1b;
 		border: 1px solid #fecaca;
-	} // Rojo vivo
+	}
 }
