@@ -1,6 +1,6 @@
 const db = require('../config/db');
 
-// 1. Obtener todas las empresas + Quién las creó/modificó
+// 1. Obtener Empresas (Se mantiene igual)
 const getEmpresas = async (req, res) => {
   try {
     const query = `
@@ -20,13 +20,22 @@ const getEmpresas = async (req, res) => {
   }
 };
 
-// 2. Crear Empresa
+// 2. Crear Empresa (ACTUALIZADO con Distrito y Provincia)
 const createEmpresa = async (req, res) => {
-  const { razon_social, ruc, direccion, telefono, email_contacto } = req.body;
-  const createdBy = req.user ? req.user.id : null; // ID del admin logueado
+  // Agregamos distrito y provincia al desestructurar
+  const {
+    razon_social,
+    ruc,
+    direccion,
+    distrito,
+    provincia,
+    telefono,
+    email_contacto,
+    sitio_web,
+  } = req.body;
+  const createdBy = req.user ? req.user.id : null;
 
   try {
-    // Verificar duplicados por RUC
     const check = await db.query('SELECT * FROM empresas WHERE ruc = $1', [
       ruc,
     ]);
@@ -35,32 +44,64 @@ const createEmpresa = async (req, res) => {
     }
 
     const newEmpresa = await db.query(
-      `INSERT INTO empresas (razon_social, ruc, direccion, telefono, email_contacto, created_by_id, updated_by_id) 
-             VALUES ($1, $2, $3, $4, $5, $6, $6) RETURNING *`,
-      [razon_social, ruc, direccion, telefono, email_contacto, createdBy],
+      `INSERT INTO empresas (razon_social, ruc, direccion, distrito, provincia, telefono, email_contacto, sitio_web, created_by_id, updated_by_id) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9) RETURNING *`,
+      [
+        razon_social,
+        ruc,
+        direccion,
+        distrito,
+        provincia,
+        telefono,
+        email_contacto,
+        sitio_web,
+        createdBy,
+      ],
     );
-    res.status(201).json({
-      message: 'Empresa registrada exitosamente',
-      empresa: newEmpresa.rows[0],
-    });
+    res
+      .status(201)
+      .json({
+        message: 'Empresa registrada exitosamente',
+        empresa: newEmpresa.rows[0],
+      });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error al crear empresa' });
   }
 };
 
-// 3. Actualizar Empresa
+// 3. Actualizar Empresa (ACTUALIZADO con Distrito y Provincia)
 const updateEmpresa = async (req, res) => {
   const { id } = req.params;
-  const { razon_social, ruc, direccion, telefono, email_contacto } = req.body;
+  const {
+    razon_social,
+    ruc,
+    direccion,
+    distrito,
+    provincia,
+    telefono,
+    email_contacto,
+    sitio_web,
+  } = req.body;
   const updatedBy = req.user ? req.user.id : null;
 
   try {
     const result = await db.query(
       `UPDATE empresas 
-             SET razon_social=$1, ruc=$2, direccion=$3, telefono=$4, email_contacto=$5, updated_by_id=$6, updated_at=CURRENT_TIMESTAMP
-             WHERE id=$7 RETURNING *`,
-      [razon_social, ruc, direccion, telefono, email_contacto, updatedBy, id],
+             SET razon_social=$1, ruc=$2, direccion=$3, distrito=$4, provincia=$5, telefono=$6, email_contacto=$7, sitio_web=$8, updated_by_id=$9, updated_at=CURRENT_TIMESTAMP
+             WHERE id=$10 RETURNING *`,
+      [
+        razon_social,
+        ruc,
+        direccion,
+        distrito,
+        provincia,
+        telefono,
+        email_contacto,
+        sitio_web,
+        updatedBy,
+        id,
+      ],
     );
 
     if (result.rowCount === 0) {

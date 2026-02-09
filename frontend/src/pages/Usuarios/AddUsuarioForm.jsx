@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { FaUserPlus, FaEdit, FaLock } from 'react-icons/fa'; // Icono de candado opcional
+import { FaUserPlus, FaEdit, FaLock, FaSave } from 'react-icons/fa';
 import api from '../../services/api';
-import CustomSelect from '../../components/Select/CustomSelect';
+import Select from 'react-select'; // Usamos react-select para la empresa
+import CustomSelect from '../../components/Select/CustomSelect'; // Mantenemos tu componente para género
 import '../Equipos/FormStyles.scss';
 
 const AddUsuarioForm = ({ onSuccess, usuarioToEdit }) => {
@@ -17,11 +18,38 @@ const AddUsuarioForm = ({ onSuccess, usuarioToEdit }) => {
     telefono: '',
   });
 
+  // Estado para la lista de empresas
+  const [empresaOptions, setEmpresaOptions] = useState([]);
+  const [loadingEmpresas, setLoadingEmpresas] = useState(false);
+
   const genderOptions = [
     { value: 'hombre', label: 'Hombre (Sr.)' },
     { value: 'mujer', label: 'Mujer (Srta.)' },
   ];
 
+  // 1. CARGAR EMPRESAS AL INICIO
+  useEffect(() => {
+    const fetchEmpresas = async () => {
+      setLoadingEmpresas(true);
+      try {
+        const res = await api.get('/empresas');
+        // Mapeamos a formato { value, label } para el Select
+        const options = res.data.map((emp) => ({
+          value: emp.razon_social,
+          label: emp.razon_social,
+        }));
+        setEmpresaOptions(options);
+      } catch (error) {
+        console.error('Error al cargar empresas');
+        toast.error('No se pudo cargar la lista de empresas');
+      } finally {
+        setLoadingEmpresas(false);
+      }
+    };
+    fetchEmpresas();
+  }, []);
+
+  // 2. RELLENAR DATOS SI ES EDICIÓN
   useEffect(() => {
     if (usuarioToEdit) {
       setFormData({
@@ -37,8 +65,16 @@ const AddUsuarioForm = ({ onSuccess, usuarioToEdit }) => {
     }
   }, [usuarioToEdit]);
 
+  // Manejadores de cambios
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleEmpresaChange = (selectedOption) => {
+    setFormData({
+      ...formData,
+      empresa: selectedOption ? selectedOption.value : '',
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -60,14 +96,42 @@ const AddUsuarioForm = ({ onSuccess, usuarioToEdit }) => {
     }
   };
 
-  // Helper para saber si estamos editando (para bloquear campos)
+  // Helper para saber si estamos editando
   const isEdit = !!usuarioToEdit;
 
-  // Estilo para inputs deshabilitados
+  // Estilos para inputs deshabilitados (Visual)
   const disabledStyle = {
     background: '#f1f5f9',
     color: '#94a3b8',
     cursor: 'not-allowed',
+  };
+
+  // Estilos personalizados para React-Select (Para que coincida con tus inputs)
+  const customSelectStyles = {
+    control: (provided, state) => ({
+      ...provided,
+      background: state.isDisabled ? '#f1f5f9' : 'rgba(255, 255, 255, 0.9)',
+      borderColor: state.isFocused ? '#7c3aed' : '#cbd5e1',
+      borderRadius: '8px',
+      padding: '2px',
+      boxShadow: state.isFocused ? '0 0 0 1px #7c3aed' : 'none',
+      cursor: state.isDisabled ? 'not-allowed' : 'default',
+      '&:hover': { borderColor: state.isDisabled ? '#cbd5e1' : '#7c3aed' },
+    }),
+    option: (provided, state) => ({
+      ...provided,
+      backgroundColor: state.isSelected
+        ? '#7c3aed'
+        : state.isFocused
+          ? '#f3f0ff'
+          : 'white',
+      color: state.isSelected ? 'white' : '#334155',
+      cursor: 'pointer',
+    }),
+    singleValue: (provided, state) => ({
+      ...provided,
+      color: state.isDisabled ? '#94a3b8' : '#334155',
+    }),
   };
 
   return (
@@ -78,16 +142,19 @@ const AddUsuarioForm = ({ onSuccess, usuarioToEdit }) => {
       {isEdit && (
         <div
           style={{
-            marginBottom: '10px',
-            fontSize: '0.85rem',
-            color: '#f59e0b',
+            marginBottom: '15px',
+            fontSize: '0.9rem',
+            color: '#b45309',
             background: '#fffbeb',
-            padding: '8px',
-            borderRadius: '6px',
+            padding: '10px',
+            borderRadius: '8px',
+            border: '1px solid #fcd34d',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
           }}
         >
-          <FaLock style={{ marginRight: '5px' }} /> Solo se permite editar
-          contacto y cargo.
+          <FaLock /> Solo se permite editar contacto y cargo.
         </div>
       )}
 
@@ -101,13 +168,13 @@ const AddUsuarioForm = ({ onSuccess, usuarioToEdit }) => {
             required
             disabled={isEdit} // BLOQUEADO
             style={isEdit ? disabledStyle : {}}
+            placeholder='Ej: 77123456'
           />
         </div>
         <div className='input-group'>
           <label>Género</label>
           <CustomSelect
             options={genderOptions}
-            // CORRECCIÓN ERROR JS: Usamos encadenamiento opcional (?.)
             value={genderOptions.find((op) => op.value === formData.genero)}
             onChange={(op) =>
               setFormData({ ...formData, genero: op?.value || 'hombre' })
@@ -128,6 +195,7 @@ const AddUsuarioForm = ({ onSuccess, usuarioToEdit }) => {
             required
             disabled={isEdit} // BLOQUEADO
             style={isEdit ? disabledStyle : {}}
+            placeholder='Ej: Juan'
           />
         </div>
         <div className='input-group'>
@@ -139,6 +207,7 @@ const AddUsuarioForm = ({ onSuccess, usuarioToEdit }) => {
             required
             disabled={isEdit} // BLOQUEADO
             style={isEdit ? disabledStyle : {}}
+            placeholder='Ej: Pérez'
           />
         </div>
       </div>
@@ -153,6 +222,7 @@ const AddUsuarioForm = ({ onSuccess, usuarioToEdit }) => {
             value={formData.correo}
             onChange={handleChange}
             required
+            placeholder='juan@empresa.com'
           />
         </div>
         <div className='input-group'>
@@ -163,21 +233,29 @@ const AddUsuarioForm = ({ onSuccess, usuarioToEdit }) => {
             type='tel'
             value={formData.telefono}
             onChange={handleChange}
+            placeholder='+51 999 999 999'
           />
         </div>
       </div>
 
       <div className='form-row'>
+        {/* --- CAMBIO: INPUT -> SELECT EMPRESA --- */}
         <div className='input-group'>
           <label>Empresa</label>
-          <input
-            name='empresa'
-            value={formData.empresa}
-            onChange={handleChange}
-            disabled={isEdit} // BLOQUEADO
-            style={isEdit ? disabledStyle : {}}
+          <Select
+            options={empresaOptions}
+            value={empresaOptions.find((op) => op.value === formData.empresa)}
+            onChange={handleEmpresaChange}
+            styles={customSelectStyles}
+            placeholder={
+              loadingEmpresas ? 'Cargando...' : 'Seleccione empresa...'
+            }
+            isLoading={loadingEmpresas}
+            isDisabled={isEdit} // BLOQUEADO SI SE EDITA
+            isClearable={!isEdit}
           />
         </div>
+
         <div className='input-group'>
           <label>Cargo</label>
           {/* ESTE SÍ SE PUEDE EDITAR */}
@@ -185,6 +263,7 @@ const AddUsuarioForm = ({ onSuccess, usuarioToEdit }) => {
             name='cargo'
             value={formData.cargo}
             onChange={handleChange}
+            placeholder='Ej: Analista'
           />
         </div>
       </div>
@@ -194,7 +273,7 @@ const AddUsuarioForm = ({ onSuccess, usuarioToEdit }) => {
         className='btn-submit'
       >
         {isEdit ? (
-          <FaEdit style={{ marginRight: '8px' }} />
+          <FaSave style={{ marginRight: '8px' }} />
         ) : (
           <FaUserPlus style={{ marginRight: '8px' }} />
         )}

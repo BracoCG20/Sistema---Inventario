@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
+import Select from 'react-select'; // <--- 1. IMPORTAR SELECT
 import {
   FaUser,
   FaBuilding,
@@ -16,23 +17,17 @@ import {
 import './Configuracion.scss';
 
 // --- IMPORTACIÓN DE MODALES ---
-
-// Modales de USUARIOS (Admin)
 import RegisterAdminModal from '../../components/RegisterAdminModal/RegisterAdminModal';
 import UserListModal from '../../components/UserListModal/UserListModal';
-
-// Modales de EMPRESAS (Nuevos)
-// Asegúrate de que la ruta sea correcta según donde guardaste los archivos
 import AddEmpresaModal from '../../components/EmpresaModal/AddEmpresaModal';
 import EmpresaListModal from '../../components/EmpresaModal/EmpresaListModal';
 
 const Configuracion = () => {
   // --- ESTADOS PARA MODALES ---
-  const [showUserModal, setShowUserModal] = useState(false); // Crear Usuario
-  const [showUserList, setShowUserList] = useState(false); // Ver Usuarios
-
-  const [showEmpresaModal, setShowEmpresaModal] = useState(false); // Crear Empresa
-  const [showEmpresaList, setShowEmpresaList] = useState(false); // Ver Empresas
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [showUserList, setShowUserList] = useState(false);
+  const [showEmpresaModal, setShowEmpresaModal] = useState(false);
+  const [showEmpresaList, setShowEmpresaList] = useState(false);
 
   // --- ESTADOS DEL PERFIL ---
   const [loading, setLoading] = useState(true);
@@ -49,7 +44,11 @@ const Configuracion = () => {
   });
   const [fotoFile, setFotoFile] = useState(null);
 
-  // Cargar datos del perfil
+  // --- ESTADO PARA SELECT DE EMPRESAS ---
+  const [empresaOptions, setEmpresaOptions] = useState([]);
+  const [loadingEmpresas, setLoadingEmpresas] = useState(false);
+
+  // 1. CARGAR DATOS DEL PERFIL
   useEffect(() => {
     const fetchPerfil = async () => {
       try {
@@ -78,8 +77,38 @@ const Configuracion = () => {
     fetchPerfil();
   }, []);
 
+  // 2. CARGAR LISTA DE EMPRESAS (PARA EL SELECT)
+  useEffect(() => {
+    const fetchEmpresas = async () => {
+      setLoadingEmpresas(true);
+      try {
+        const res = await api.get('/empresas');
+        // Mapeamos a formato { value, label } usando la razón social
+        const options = res.data.map((emp) => ({
+          value: emp.razon_social,
+          label: emp.razon_social,
+        }));
+        setEmpresaOptions(options);
+      } catch (error) {
+        console.error('Error al cargar empresas select', error);
+      } finally {
+        setLoadingEmpresas(false);
+      }
+    };
+    fetchEmpresas();
+  }, []);
+
+  // --- MANEJADORES ---
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // Manejador específico para el Select de Empresa
+  const handleEmpresaChange = (selectedOption) => {
+    setFormData({
+      ...formData,
+      empresa: selectedOption ? selectedOption.value : '',
+    });
   };
 
   const handleImageChange = (e) => {
@@ -123,6 +152,36 @@ const Configuracion = () => {
     }
   };
 
+  // Estilos personalizados para que el Select combine con los inputs existentes
+  const customSelectStyles = {
+    control: (provided, state) => ({
+      ...provided,
+      borderRadius: '8px',
+      borderColor: state.isFocused ? '#4f46e5' : '#cbd5e1',
+      boxShadow: state.isFocused ? '0 0 0 3px rgba(79, 70, 229, 0.1)' : 'none',
+      padding: '2px',
+      minHeight: '42px', // Altura similar a los inputs
+    }),
+    option: (provided, state) => ({
+      ...provided,
+      backgroundColor: state.isSelected
+        ? '#4f46e5'
+        : state.isFocused
+          ? '#e0e7ff'
+          : 'white',
+      color: state.isSelected ? 'white' : '#334155',
+      cursor: 'pointer',
+    }),
+    input: (provided) => ({
+      ...provided,
+      color: '#334155',
+    }),
+    singleValue: (provided) => ({
+      ...provided,
+      color: '#334155',
+    }),
+  };
+
   if (loading) return <div className='loading-state'>Cargando perfil...</div>;
 
   const defaultImage = `https://ui-avatars.com/api/?name=${formData.nombre}+${formData.apellidos}&background=random`;
@@ -135,50 +194,40 @@ const Configuracion = () => {
           <h1>Configuración</h1>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
           {/* GRUPO EMPRESAS */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '8px',
-              marginRight: '15px',
-              paddingRight: '15px',
-              borderRight: '1px solid #e2e8f0',
-            }}
-          >
+          <div className='button-group'>
             <button
-              className='btn-add-user'
-              style={{ backgroundColor: '#6366f1' }} // Indigo
+              className='btn-main indigo'
               onClick={() => setShowEmpresaList(true)}
-              title='Ver lista de empresas'
             >
-              <FaBuilding /> Empresas
+              <FaList /> Ver Empresas
             </button>
             <button
-              className='btn-add-user'
-              style={{ backgroundColor: '#818cf8', padding: '10px' }} // Indigo claro (Solo icono +)
+              className='btn-main indigo-light'
               onClick={() => setShowEmpresaModal(true)}
-              title='Agregar nueva empresa'
             >
-              <FaPlus />
+              <FaPlus /> Nueva Empresa
             </button>
           </div>
 
-          {/* GRUPO USUARIOS */}
-          <button
-            className='btn-add-user'
-            style={{ backgroundColor: '#3b82f6' }} // Azul
-            onClick={() => setShowUserList(true)}
-          >
-            <FaList /> Usuarios
-          </button>
+          <div className='divider-vertical'></div>
 
-          <button
-            className='btn-add-user'
-            onClick={() => setShowUserModal(true)}
-          >
-            <FaPlus /> Nuevo
-          </button>
+          {/* GRUPO USUARIOS */}
+          <div className='button-group'>
+            <button
+              className='btn-main blue'
+              onClick={() => setShowUserList(true)}
+            >
+              <FaList /> Ver Usuarios
+            </button>
+            <button
+              className='btn-main green'
+              onClick={() => setShowUserModal(true)}
+            >
+              <FaPlus /> Nuevo Usuario
+            </button>
+          </div>
         </div>
       </div>
 
@@ -291,18 +340,26 @@ const Configuracion = () => {
           <h3 className='section-title mt-large'>Información Corporativa</h3>
 
           <div className='form-row'>
+            {/* --- AQUÍ EL CAMBIO A SELECT --- */}
             <div className='input-group'>
               <label>
                 <FaBuilding /> Empresa
               </label>
-              <input
-                type='text'
-                name='empresa'
-                value={formData.empresa}
-                onChange={handleChange}
-                className='input-field'
+              <Select
+                options={empresaOptions}
+                value={empresaOptions.find(
+                  (op) => op.value === formData.empresa,
+                )}
+                onChange={handleEmpresaChange}
+                styles={customSelectStyles}
+                placeholder={
+                  loadingEmpresas ? 'Cargando...' : 'Seleccione empresa...'
+                }
+                isLoading={loadingEmpresas}
+                isClearable
               />
             </div>
+
             <div className='input-group'>
               <label>
                 <FaUserTie /> Cargo
@@ -342,18 +399,17 @@ const Configuracion = () => {
         </div>
       </form>
 
-      {/* --- MODALES DE USUARIOS --- */}
+      {/* --- MODALES --- */}
       {showUserModal && (
         <RegisterAdminModal onClose={() => setShowUserModal(false)} />
       )}
       {showUserList && <UserListModal onClose={() => setShowUserList(false)} />}
 
-      {/* --- MODALES DE EMPRESAS (NUEVOS) --- */}
       {showEmpresaModal && (
         <AddEmpresaModal
           onClose={() => setShowEmpresaModal(false)}
           onSuccess={() => {
-            /* Lógica opcional para refrescar si hiciera falta */
+            /* Refrescar si fuera necesario */
           }}
         />
       )}
