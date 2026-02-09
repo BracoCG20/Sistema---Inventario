@@ -1,244 +1,171 @@
-import React from "react";
+import React from 'react';
 import {
-	FaHistory,
-	FaCheck,
-	FaTimes,
-	FaFilePdf,
-	FaUpload,
-	FaBan,
-	FaEye,
-	FaEnvelope,
-	FaExclamationTriangle,
-} from "react-icons/fa";
+  FaHistory,
+  FaCheck,
+  FaTimes,
+  FaFilePdf,
+  FaUpload,
+  FaBan,
+  FaEye,
+  FaEnvelope,
+  FaExclamationTriangle,
+} from 'react-icons/fa';
 
 const EntregaTable = ({
-	historial,
-	onVerPdfOriginal,
-	onVerFirmado,
-	onSubirClick,
-	onInvalidar,
+  historial,
+  onVerPdfOriginal,
+  onVerFirmado,
+  onSubirClick,
+  onInvalidar,
 }) => {
-	const formatDateTime = (isoString) => {
-		if (!isoString) return "-";
-		const date = new Date(
-			isoString.endsWith("Z") ? isoString : `${isoString}Z`,
-		);
-		return date.toLocaleString("es-PE", {
-			timeZone: "America/Lima",
-			day: "2-digit",
-			month: "2-digit",
-			year: "numeric",
-			hour: "2-digit",
-			minute: "2-digit",
-			hour12: true,
-		});
-	};
+  const formatDateTime = (isoString) => {
+    if (!isoString) return '-';
+    const date = new Date(
+      isoString.endsWith('Z') ? isoString : `${isoString}Z`,
+    );
+    return date.toLocaleString('es-PE', {
+      timeZone: 'America/Lima',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
 
-	return (
-		<div className='table-container' style={{ height: "fit-content" }}>
-			<h3
-				style={{
-					padding: "1rem",
-					borderBottom: "1px solid #eee",
-					fontSize: "1.1rem",
-					color: "#1e293b",
-				}}
-			>
-				<FaHistory style={{ marginRight: "8px" }} /> Estado de Actas
-			</h3>
-			<table>
-				{/* CORRECCIÓN CRÍTICA: Todo el thead sin espacios entre etiquetas */}
-				<thead>
-					<tr>
-						<th>Datos Entrega</th>
-						<th style={{ textAlign: "center" }}>Carg.</th>
-						<th style={{ textAlign: "center" }}>Correo</th>
-						<th style={{ textAlign: "center" }}>Acta Gen.</th>
-						<th style={{ textAlign: "center" }}>Firma Empleado</th>
-					</tr>
-				</thead>
-				<tbody>
-					{historial.map((h) => (
-						<tr key={h.id}>
-							{/* DATOS */}
-							<td>
-								<strong style={{ color: "#334155", fontSize: "0.9rem" }}>
-									{h.empleado_nombre} {h.empleado_apellido}
-								</strong>
-								<div
-									style={{
-										fontSize: "0.8rem",
-										color: "#64748b",
-										marginTop: "4px",
-									}}
-								>
-									{h.modelo}
-								</div>
-								<div
-									style={{
-										fontSize: "0.75rem",
-										color: "#0284c7",
-										fontWeight: "600",
-									}}
-								>
-									{formatDateTime(h.fecha_movimiento)}
-								</div>
-							</td>
+  return (
+    <div className='table-card'>
+      <h3>
+        <FaHistory /> Últimas Entregas
+      </h3>
+      <table>
+        <thead>
+          <tr>
+            {/* 1. FECHA */}
+            <th>Fecha y Hora</th>
 
-							{/* CARGADOR */}
-							<td style={{ textAlign: "center" }}>
-								{h.cargador ? (
-									<FaCheck color='#16a34a' />
-								) : (
-									<FaTimes color='#ef4444' />
-								)}
-							</td>
+            {/* 2. EQUIPO (Modelo y Serie) */}
+            <th>Equipo Entregado</th>
 
-							{/* ESTADO CORREO */}
-							<td style={{ textAlign: "center" }}>
-								{h.correo_enviado === true && (
-									<FaEnvelope
-										style={{ color: "#16a34a", fontSize: "1.1rem" }}
-										title='Correo enviado correctamente'
-									/>
-								)}
-								{h.correo_enviado === false && (
-									<FaExclamationTriangle
-										style={{ color: "#ef4444", fontSize: "1.1rem" }}
-										title='Error al enviar correo'
-									/>
-								)}
-								{h.correo_enviado === null && (
-									<span style={{ color: "#cbd5e1" }}>-</span>
-								)}
-							</td>
+            {/* 3. USUARIO */}
+            <th>Usuario</th>
 
-							{/* PDF ORIGINAL */}
-							<td style={{ textAlign: "center" }}>
-								<button
-									onClick={() => onVerPdfOriginal(h)}
-									style={{
-										border: "none",
-										background: "transparent",
-										cursor: "pointer",
-										color: "#64748b",
-										fontSize: "1.2rem",
-									}}
-									title='Ver Acta Generada Original'
-								>
-									<FaFilePdf />
-								</button>
-							</td>
+            <th className='center'>Carg.</th>
+            <th className='center'>Correo</th>
+            <th className='center'>Acta</th>
+            <th className='center'>Firma</th>
+          </tr>
+        </thead>
+        <tbody>
+          {historial.map((h) => (
+            <tr key={h.id}>
+              {/* FECHA */}
+              <td>
+                <span className='date-text'>
+                  {formatDateTime(h.fecha_movimiento)}
+                </span>
+              </td>
 
-							{/* ESTADO FIRMA / SUBIDA */}
-							<td style={{ textAlign: "center" }}>
-								{!h.pdf_firmado_url && (
-									<button
-										onClick={() => onSubirClick(h.id)}
-										style={{
-											background: "#3b82f6",
-											color: "white",
-											border: "none",
-											padding: "6px 12px",
-											borderRadius: "6px",
-											cursor: "pointer",
-											fontSize: "0.85rem",
-											display: "flex",
-											alignItems: "center",
-											gap: "6px",
-											margin: "0 auto",
-										}}
-									>
-										<FaUpload /> Subir
-									</button>
-								)}
+              {/* EQUIPO */}
+              <td>
+                <strong>{h.modelo}</strong>
+                <span className='text-muted'>S/N: {h.serie}</span>
+              </td>
 
-								{h.pdf_firmado_url && h.firma_valida !== false && (
-									<div
-										style={{
-											display: "flex",
-											gap: "12px",
-											justifyContent: "center",
-											alignItems: "center",
-										}}
-									>
-										<button
-											onClick={() => onVerFirmado(h.pdf_firmado_url)}
-											style={{
-												color: "#16a34a",
-												background: "#dcfce7",
-												border: "1px solid #86efac",
-												borderRadius: "6px",
-												padding: "6px",
-												cursor: "pointer",
-												fontSize: "1.1rem",
-											}}
-											title='Ver Firmado'
-										>
-											<FaEye />
-										</button>
-										<button
-											onClick={() => onInvalidar(h.id)}
-											style={{
-												color: "#ef4444",
-												background: "#fee2e2",
-												border: "1px solid #fca5a5",
-												borderRadius: "6px",
-												padding: "6px",
-												cursor: "pointer",
-												fontSize: "1.1rem",
-											}}
-											title='Invalidar Firma'
-										>
-											<FaBan />
-										</button>
-									</div>
-								)}
+              {/* USUARIO */}
+              <td>
+                {h.empleado_nombre} {h.empleado_apellido}
+              </td>
 
-								{h.pdf_firmado_url && h.firma_valida === false && (
-									<div
-										style={{
-											display: "flex",
-											flexDirection: "column",
-											alignItems: "center",
-											gap: "5px",
-										}}
-									>
-										<span
-											style={{
-												color: "#ef4444",
-												fontSize: "0.7rem",
-												fontWeight: "bold",
-												background: "#fee2e2",
-												padding: "2px 6px",
-												borderRadius: "4px",
-											}}
-										>
-											RECHAZADO
-										</span>
-										<button
-											onClick={() => onSubirClick(h.id)}
-											style={{
-												background: "#f59e0b",
-												color: "white",
-												border: "none",
-												padding: "4px 8px",
-												borderRadius: "4px",
-												cursor: "pointer",
-												fontSize: "0.75rem",
-											}}
-										>
-											<FaUpload /> Re-subir
-										</button>
-									</div>
-								)}
-							</td>
-						</tr>
-					))}
-				</tbody>
-			</table>
-		</div>
-	);
+              {/* CARGADOR */}
+              <td className='center'>
+                {h.cargador ? (
+                  <FaCheck className='check-icon' />
+                ) : (
+                  <span style={{ color: '#cbd5e1' }}>-</span>
+                )}
+              </td>
+
+              {/* CORREO */}
+              <td className='center'>
+                {h.correo_enviado === true && (
+                  <FaEnvelope
+                    className='mail-success'
+                    title='Enviado'
+                  />
+                )}
+                {h.correo_enviado === false && (
+                  <FaExclamationTriangle
+                    className='mail-error'
+                    title='Error'
+                  />
+                )}
+                {h.correo_enviado === null && (
+                  <span style={{ color: '#cbd5e1' }}>-</span>
+                )}
+              </td>
+
+              {/* PDF GENERADO */}
+              <td className='center'>
+                <button
+                  onClick={() => onVerPdfOriginal(h)}
+                  className='btn-icon pdf'
+                  title='Ver Original'
+                >
+                  <FaFilePdf />
+                </button>
+              </td>
+
+              {/* FIRMA (BOTONES CENTRADOS) */}
+              <td className='center'>
+                <div className='action-buttons-wrapper'>
+                  {!h.pdf_firmado_url && (
+                    <button
+                      onClick={() => onSubirClick(h.id)}
+                      className='btn-upload'
+                    >
+                      <FaUpload /> Subir
+                    </button>
+                  )}
+
+                  {h.pdf_firmado_url && h.firma_valida !== false && (
+                    <div className='signed-actions'>
+                      <button
+                        onClick={() => onVerFirmado(h.pdf_firmado_url)}
+                        className='btn-view'
+                        title='Ver Firmado'
+                      >
+                        <FaEye />
+                      </button>
+                      <button
+                        onClick={() => onInvalidar(h.id)}
+                        className='btn-invalid'
+                        title='Invalidar'
+                      >
+                        <FaBan />
+                      </button>
+                    </div>
+                  )}
+
+                  {h.pdf_firmado_url && h.firma_valida === false && (
+                    <div className='rejected-wrapper'>
+                      <button
+                        onClick={() => onSubirClick(h.id)}
+                        className='btn-upload re-upload'
+                      >
+                        <FaUpload /> Re-subir
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 };
 
 export default EntregaTable;

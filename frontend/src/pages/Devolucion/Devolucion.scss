@@ -1,0 +1,199 @@
+@use '../../styles/variables' as v;
+
+.devolucion-container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  // --- HEADER DE PÁGINA ---
+  .page-header {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 1rem;
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: v.$primary;
+      margin: 0;
+    }
+  }
+
+  // --- LAYOUT PRINCIPAL (GRID) ---
+  .content-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+    align-items: start;
+
+    @media (max-width: 1024px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .hidden-input {
+    display: none;
+  }
+
+  // ==========================================
+  // ESTILOS DE LA TABLA (RECUPERADOS)
+  // ==========================================
+  .table-container {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+    overflow: hidden;
+
+    h3 {
+      padding: 15px 20px;
+      margin: 0;
+      font-size: 1.1rem;
+      color: #334155;
+      border-bottom: 1px solid #e2e8f0;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+
+      thead tr {
+        background-color: #efe9fb;
+        border-bottom: 2px solid #e2e8f0;
+
+        th {
+          padding: 14px 12px;
+          text-align: left;
+          font-weight: 700;
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          color: #4f46e5;
+          letter-spacing: 0.5px;
+        }
+      }
+
+      tbody tr {
+        border-bottom: 1px solid #f1f5f9;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background-color: #f8fafc;
+        }
+
+        td {
+          padding: 12px;
+          vertical-align: middle;
+          font-size: 0.85rem;
+          color: #334155;
+        }
+      }
+    }
+
+    // --- ELEMENTOS INTERNOS DE LA TABLA ---
+
+    // Texto fuerte (Ej: Modelo de equipo)
+    strong {
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    // Texto secundario (Ej: Serie)
+    .text-muted {
+      color: #64748b;
+      font-size: 0.75rem;
+      display: block;
+      margin-top: 2px;
+    }
+
+    // Badges de Estado
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      white-space: nowrap;
+
+      &.operativo {
+        background: #dcfce7;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+      }
+      &.malogrado {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+      }
+    }
+
+    // Iconos de Check (Cargador, etc)
+    .check-icon {
+      color: #10b981;
+      font-size: 1rem;
+    }
+    .dash-icon {
+      color: #cbd5e1;
+    }
+
+    // Icono PDF
+    .pdf-icon {
+      color: #ef4444;
+      font-size: 1.2rem;
+      cursor: pointer;
+      &:hover {
+        transform: scale(1.1);
+      }
+    }
+
+    // --- BOTONES DE ACCIÓN (SUBIR, VER, INVALIDAR) ---
+    .btn-action {
+      border: none;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+      font-weight: 600;
+
+      // Botón Azul "Subir"
+      &.upload {
+        background-color: #3b82f6;
+        color: white;
+        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+        &:hover {
+          background-color: #2563eb;
+          transform: translateY(-1px);
+        }
+      }
+
+      // Botón Verde (Ver/Ojo)
+      &.view {
+        background-color: #dcfce7;
+        color: #16a34a;
+        border: 1px solid #bbf7d0;
+        &:hover {
+          background-color: #bbf7d0;
+        }
+      }
+
+      // Botón Rojo (Invalidar)
+      &.danger {
+        background-color: #fee2e2;
+        color: #ef4444;
+        border: 1px solid #fecaca;
+        &:hover {
+          background-color: #fecaca;
+        }
+      }
+    }
+  }
+}
