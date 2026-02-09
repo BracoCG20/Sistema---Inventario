@@ -10,18 +10,21 @@ import {
 	FaEnvelope,
 	FaWhatsapp,
 	FaUserTie,
-	FaPlus, // Importamos el icono más
+	FaPlus,
+	FaList, // <--- Nuevo icono para la lista
 } from "react-icons/fa";
 
-// Importamos el archivo de estilos propios de la página
+// Importamos estilos
 import "./Configuracion.scss";
 
-// IMPORTANTE: Importamos el componente del Modal que creamos aparte
+// IMPORTANTE: Importamos los componentes Modales
 import RegisterAdminModal from "../../components/RegisterAdminModal/RegisterAdminModal";
+import UserListModal from "../../components/UserListModal/UserListModal"; // <--- Nuevo componente
 
 const Configuracion = () => {
-	// --- ESTADO PARA EL MODAL ---
-	const [showModal, setShowModal] = useState(false);
+	// --- ESTADOS PARA MODALES ---
+	const [showModal, setShowModal] = useState(false); // Modal Nuevo Usuario
+	const [showListModal, setShowListModal] = useState(false); // Modal Lista Usuarios
 
 	// --- ESTADOS DEL PERFIL ---
 	const [loading, setLoading] = useState(true);
@@ -114,20 +117,31 @@ const Configuracion = () => {
 
 	if (loading) return <div className='loading-state'>Cargando perfil...</div>;
 
-	// Avatar por defecto si no hay imagen (evita errores de carga)
 	const defaultImage = `https://ui-avatars.com/api/?name=${formData.nombre}+${formData.apellidos}&background=random`;
 
 	return (
 		<div className='config-container'>
-			{/* --- ENCABEZADO CON BOTÓN DE AGREGAR --- */}
+			{/* --- ENCABEZADO CON ACCIONES --- */}
 			<div className='header-actions'>
 				<div className='page-header'>
 					<h1>Configuración de Perfil</h1>
 				</div>
-				{/* Botón que abre el modal */}
-				<button className='btn-add-user' onClick={() => setShowModal(true)}>
-					<FaPlus /> Nuevo Usuario
-				</button>
+
+				<div style={{ display: "flex", gap: "10px" }}>
+					{/* BOTÓN 1: VER LISTA DE USUARIOS */}
+					<button
+						className='btn-add-user'
+						style={{ backgroundColor: "#3b82f6" }} // Azul
+						onClick={() => setShowListModal(true)}
+					>
+						<FaList /> Ver Usuarios
+					</button>
+
+					{/* BOTÓN 2: AGREGAR NUEVO USUARIO */}
+					<button className='btn-add-user' onClick={() => setShowModal(true)}>
+						<FaPlus /> Nuevo Usuario
+					</button>
+				</div>
 			</div>
 
 			{/* --- FORMULARIO DE EDICIÓN DE PERFIL --- */}
@@ -281,8 +295,13 @@ const Configuracion = () => {
 				</div>
 			</form>
 
-			{/* --- RENDERIZADO DEL MODAL (COMPONENTE APARTE) --- */}
+			{/* --- MODAL 1: REGISTRAR NUEVO USUARIO --- */}
 			{showModal && <RegisterAdminModal onClose={() => setShowModal(false)} />}
+
+			{/* --- MODAL 2: VER LISTA DE USUARIOS (NUEVO) --- */}
+			{showListModal && (
+				<UserListModal onClose={() => setShowListModal(false)} />
+			)}
 		</div>
 	);
 };

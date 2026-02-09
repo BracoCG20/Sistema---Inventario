@@ -19,8 +19,16 @@ const login = async (req, res) => {
 
 		const user = result.rows[0];
 
+		// --- NUEVA VALIDACIÓN: Verificar si está activo ---
+		if (!user.activo) {
+			return res.status(403).json({
+				error:
+					"Acceso denegado: Tu cuenta está inactiva. Contacta al administrador.",
+			});
+		}
+		// ------------------------------------------------
+
 		// 2. Verificar contraseña
-		// IMPORTANTE: Usamos 'password_hash' que es como se llama en tu BD
 		if (!user.password_hash) {
 			console.error("Error: Usuario sin hash de contraseña en BD");
 			return res
@@ -47,9 +55,10 @@ const login = async (req, res) => {
 			user: {
 				id: user.id,
 				nombre: user.nombre,
-				email: user.email,
+				email: user.email, // Importante para que salga en el Sidebar
 				foto_url: user.foto_url,
 				cargo: user.cargo,
+				rol_id: user.rol_id, // Opcional, por si lo necesitas en el frontend
 			},
 		});
 	} catch (error) {
@@ -163,11 +172,19 @@ const updatePerfil = async (req, res) => {
 };
 
 const register = async (req, res) => {
-	const { nombre, apellidos, email, password, cargo, empresa, telefono } =
-		req.body;
+	// Recibimos 'rol_id' en lugar de 'rol'
+	const {
+		nombre,
+		apellidos,
+		email,
+		password,
+		cargo,
+		empresa,
+		telefono,
+		rol_id,
+	} = req.body;
 
 	try {
-		// 1. Validar si el usuario ya existe
 		const userExist = await pool.query(
 			"SELECT * FROM usuarios_admin WHERE email = $1",
 			[email],
@@ -176,27 +193,102 @@ const register = async (req, res) => {
 			return res.status(400).json({ error: "El correo ya está registrado" });
 		}
 
-		// 2. Encriptar contraseña
 		const salt = await bcrypt.genSalt(10);
 		const hash = await bcrypt.hash(password, salt);
 
-		// 3. Insertar en Base de Datos
+		// IMPORTANTE: Insertamos en 'rol_id'.
+		// Asumo que si no envían rol_id, por defecto es 2 (según tu tabla).
+		const rolFinal = rol_id || 2;
+
 		const query = `
-            INSERT INTO usuarios_admin (nombre, apellidos, email, password_hash, cargo, empresa, telefono, fecha_creacion)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+            INSERT INTO usuarios_admin 
+            (nombre, apellidos, email, password_hash, cargo, empresa, telefono, rol_id, activo, fecha_creacion)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, NOW())
             RETURNING id, nombre, email
         `;
 
-		const values = [nombre, apellidos, email, hash, cargo, empresa, telefono];
+		const values = [
+			nombre,
+			apellidos,
+			email,
+			hash,
+			cargo,
+			empresa,
+			telefono,
+			rolFinal,
+		];
 		const result = await pool.query(query, values);
 
-		res.json({
-			message: "Usuario administrador creado exitosamente",
-			user: result.rows[0],
-		});
+		res.json({ message: "Usuario creado exitosamente", user: result.rows[0] });
 	} catch (error) {
 		console.error("Error en registro:", error);
 		res.status(500).json({ error: "Error al registrar usuario" });
+	}
+};
+
+// B. OBTENER TODOS LOS USUARIOS
+const getAllUsers = async (req, res) => {
+	try {
+		// Hacemos LEFT JOIN con la tabla 'roles' para traer el nombre del rol.
+		// Asumo que tu tabla 'roles' tiene una columna 'nombre' o 'descripcion'.
+		// Si se llama diferente, cambia 'r.nombre' por lo que corresponda.
+		const query = `
+            SELECT 
+                u.id, 
+                u.nombre, 
+                u.apellidos, 
+                u.email, 
+                u.cargo, 
+                u.empresa, 
+                u.activo, 
+                u.rol_id,
+                r.nombre as nombre_rol 
+            FROM usuarios_admin u
+            LEFT JOIN roles r ON u.rol_id = r.id
+            ORDER BY u.id ASC
+        `;
+		const result = await pool.query(query);
+		res.json(result.rows);
+	} catch (error) {
+		console.error(error);
+		res.status(500).json({ error: "Error al obtener usuarios" });
+	}
+};
+
+// C. CAMBIAR ESTADO (ACTIVO/INACTIVO)
+const toggleUserStatus = async (req, res) => {
+	const { id } = req.params;
+	const { activo } = req.body; // true o false
+
+	try {
+		await pool.query("UPDATE usuarios_admin SET activo = $1 WHERE id = $2", [
+			activo,
+			id,
+		]);
+		res.json({ message: "Estado actualizado correctamente" });
+	} catch (error) {
+		console.error(error);
+		res.status(500).json({ error: "Error al cambiar estado" });
+	}
+};
+
+// D. CAMBIAR CONTRASEÑA (COMO ADMINISTRADOR)
+const adminUpdatePassword = async (req, res) => {
+	const { id } = req.params;
+	const { newPassword } = req.body;
+
+	try {
+		const salt = await bcrypt.genSalt(10);
+		const hash = await bcrypt.hash(newPassword, salt);
+
+		await pool.query(
+			"UPDATE usuarios_admin SET password_hash = $1 WHERE id = $2",
+			[hash, id],
+		);
+		res.json({ message: "Contraseña actualizada correctamente" });
+	} catch (error) {
+		console.error(error);
+		res.status(500).json({ error: "Error al cambiar contraseña" });
 	}
 };
 
@@ -206,4 +298,7 @@ module.exports = {
 	getPerfil,
 	updatePerfil,
 	register,
+	getAllUsers,
+	toggleUserStatus,
+	adminUpdatePassword,
 };

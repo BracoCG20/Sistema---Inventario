@@ -10,6 +10,9 @@ const {
 	getPerfil,
 	updatePerfil,
 	register,
+	getAllUsers,
+	toggleUserStatus,
+	adminUpdatePassword,
 } = require("../controllers/authController");
 const verifyToken = require("../middlewares/authMiddleware");
 
@@ -44,5 +47,9 @@ router.post("/login", login);
 router.get("/perfil", verifyToken, getPerfil);
 router.put("/perfil", verifyToken, upload.single("foto"), updatePerfil);
 router.post("/register", verifyToken, register);
+
+router.get("/users", verifyToken, getAllUsers); // Obtener lista
+router.put("/users/:id/status", verifyToken, toggleUserStatus); // Activar/Inactivar
+router.put("/users/:id/password", verifyToken, adminUpdatePassword); // Cambiar contraseña
 
 module.exports = router;
