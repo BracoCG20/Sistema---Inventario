@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../../services/api";
 import * as XLSX from "xlsx";
+import Select from "react-select"; // <--- Importamos la librería
 import {
 	FaFileExcel,
 	FaSearch,
@@ -15,16 +16,59 @@ import {
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 
-import "../Equipos/Equipos.scss";
+// Importamos el SCSS específico
+import "./Historial.scss";
 
 const Historial = () => {
 	const [historial, setHistorial] = useState([]);
-	const [filtro, setFiltro] = useState("");
+	const [filtroTexto, setFiltroTexto] = useState("");
+	const [filtroTipo, setFiltroTipo] = useState({
+		value: "todos",
+		label: "Todos los movimientos",
+	}); // Estado objeto para react-select
 	const [loading, setLoading] = useState(true);
 
-	// --- ESTADOS PAGINACIÓN ---
+	// Estados paginación
 	const [currentPage, setCurrentPage] = useState(1);
-	const itemsPerPage = 10;
+	const itemsPerPage = 8;
+
+	// Opciones para el filtro de tipo
+	const typeOptions = [
+		{ value: "todos", label: "Todos los movimientos" },
+		{ value: "entrega", label: "Entregas" },
+		{ value: "devolucion", label: "Devoluciones" },
+	];
+
+	// Estilos personalizados para React-Select (Para que coincida con tu diseño)
+	const customSelectStyles = {
+		control: (provided, state) => ({
+			...provided,
+			minHeight: "45px",
+			borderRadius: "8px",
+			border: "1px solid #e2e8f0",
+			boxShadow: "none",
+			fontSize: "0.95rem",
+			paddingLeft: "5px",
+			"&:hover": { borderColor: "#4f46e5" },
+			borderColor: state.isFocused ? "#4f46e5" : "#e2e8f0",
+		}),
+		option: (provided, state) => ({
+			...provided,
+			backgroundColor: state.isSelected
+				? "#4f46e5"
+				: state.isFocused
+					? "#f1f5f9"
+					: "white",
+			color: state.isSelected ? "white" : "#334155",
+			cursor: "pointer",
+			fontSize: "0.9rem",
+		}),
+		singleValue: (provided) => ({
+			...provided,
+			color: "#334155",
+			fontWeight: "500",
+		}),
+	};
 
 	useEffect(() => {
 		const fetchHistorial = async () => {
@@ -43,7 +87,7 @@ const Historial = () => {
 
 	useEffect(() => {
 		setCurrentPage(1);
-	}, [filtro]);
+	}, [filtroTexto, filtroTipo]);
 
 	const formatDateTime = (isoString) => {
 		if (!isoString) return "-";
@@ -58,18 +102,13 @@ const Historial = () => {
 		});
 	};
 
-	// --- FORMATEO DE TIEMPO (SOLO MESES Y DÍAS) ---
 	const formatDuration = (intervalObj) => {
 		if (!intervalObj) return "-";
-
 		let texto = [];
 		if (intervalObj.years) texto.push(`${intervalObj.years} años`);
 		if (intervalObj.months) texto.push(`${intervalObj.months} meses`);
 		if (intervalObj.days) texto.push(`${intervalObj.days} días`);
-
-		// Si es menos de 1 día, mostramos "Hoy" o "< 1 día"
 		if (texto.length === 0) return "Reciente (Hoy)";
-
 		return texto.join(", ");
 	};
 
@@ -84,7 +123,6 @@ const Historial = () => {
 			DNI: h.dni || "-",
 			Responsable: h.admin_nombre ? h.admin_nombre : "Sistema",
 			"Correo Responsable": h.admin_correo || "-",
-			// En Excel también respetamos la lógica: solo mostrar tiempo en entregas
 			"Tiempo de Uso":
 				h.tipo === "entrega" ? formatDuration(h.tiempo_uso) : "-",
 			"Estado Final": h.estado_equipo_momento || "-",
@@ -93,17 +131,23 @@ const Historial = () => {
 		const ws = XLSX.utils.json_to_sheet(dataParaExcel);
 		const wb = XLSX.utils.book_new();
 		XLSX.utils.book_append_sheet(wb, ws, "Historial");
-		XLSX.writeFile(wb, "Historial_GTH.xlsx");
+		XLSX.writeFile(wb, "Reporte_Historial_GTH.xlsx");
 	};
 
 	// --- FILTRADO ---
-	const historialFiltrado = historial.filter(
-		(h) =>
-			h.empleado_nombre?.toLowerCase().includes(filtro.toLowerCase()) ||
-			h.serie?.toLowerCase().includes(filtro.toLowerCase()) ||
-			h.modelo?.toLowerCase().includes(filtro.toLowerCase()),
-	);
+	const historialFiltrado = historial.filter((h) => {
+		const coincideTexto =
+			h.empleado_nombre?.toLowerCase().includes(filtroTexto.toLowerCase()) ||
+			h.serie?.toLowerCase().includes(filtroTexto.toLowerCase()) ||
+			h.modelo?.toLowerCase().includes(filtroTexto.toLowerCase());
 
+		const coincideTipo =
+			filtroTipo.value === "todos" || h.tipo.toLowerCase() === filtroTipo.value;
+
+		return coincideTexto && coincideTipo;
+	});
+
+	// Paginación
 	const indexOfLastItem = currentPage * itemsPerPage;
 	const indexOfFirstItem = indexOfLastItem - itemsPerPage;
 	const currentItems = historialFiltrado.slice(
@@ -111,363 +155,224 @@ const Historial = () => {
 		indexOfLastItem,
 	);
 	const totalPages = Math.ceil(historialFiltrado.length / itemsPerPage);
-
 	const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
 	if (loading) return <div className='loading'>Cargando Historial...</div>;
 
 	return (
-		<div className='equipos-container'>
+		<div className='historial-container'>
 			<div className='page-header'>
 				<h1>Historial y Auditoría</h1>
-				<button
-					onClick={exportarExcel}
-					className='btn-action'
-					style={{
-						background: "#10b981",
-						color: "white",
-						border: "none",
-						padding: "10px 20px",
-						borderRadius: "8px",
-						cursor: "pointer",
-						display: "flex",
-						alignItems: "center",
-						gap: "10px",
-						fontSize: "1rem",
-					}}
-				>
-					<FaFileExcel /> Excel
+				<button onClick={exportarExcel} className='btn-excel'>
+					<FaFileExcel /> Exportar a Excel
 				</button>
 			</div>
 
-			<div
-				className='search-bar'
-				style={{
-					marginBottom: "20px",
-					display: "flex",
-					alignItems: "center",
-					background: "white",
-					padding: "10px",
-					borderRadius: "8px",
-					border: "1px solid #e2e8f0",
-				}}
-			>
-				<FaSearch color='#94a3b8' />
-				<input
-					type='text'
-					placeholder='Buscar por empleado, serie o modelo...'
-					value={filtro}
-					onChange={(e) => setFiltro(e.target.value)}
-					style={{
-						border: "none",
-						outline: "none",
-						marginLeft: "10px",
-						width: "100%",
-						fontSize: "1rem",
-					}}
-				/>
+			{/* BARRA DE FILTROS */}
+			<div className='filters-bar'>
+				<div className='search-input'>
+					<FaSearch color='#94a3b8' />
+					<input
+						type='text'
+						placeholder='Buscar por empleado, serie o modelo...'
+						value={filtroTexto}
+						onChange={(e) => setFiltroTexto(e.target.value)}
+					/>
+				</div>
+
+				{/* REACT SELECT PARA FILTRO DE TIPO */}
+				<div className='type-filter'>
+					<Select
+						options={typeOptions}
+						value={filtroTipo}
+						onChange={setFiltroTipo} // react-select pasa el objeto opción directamente
+						styles={customSelectStyles}
+						isSearchable={false}
+						placeholder='Tipo de Movimiento'
+					/>
+				</div>
 			</div>
 
+			{/* TABLA CON TUS ESTILOS CONSERVADOS */}
 			<div className='table-container'>
-				<table style={{ width: "100%", borderCollapse: "collapse" }}>
+				<table>
 					<thead>
-						<tr
-							style={{
-								background: "#f8fafc",
-								color: "#475569",
-								textAlign: "left",
-								borderBottom: "2px solid #e2e8f0",
-							}}
-						>
-							<th style={{ padding: "12px" }}>Fecha</th>
-							<th style={{ padding: "12px" }}>Tipo</th>
-							<th style={{ padding: "12px" }}>Equipo</th>
-							<th style={{ padding: "12px" }}>Empleado</th>
-							<th style={{ padding: "12px" }}>Auditoría</th>
-							<th style={{ padding: "12px" }}>Tiempo de Uso</th>
-							<th style={{ padding: "12px", textAlign: "center" }}>Estado</th>
+						<tr>
+							<th>Fecha</th>
+							<th>Tipo</th>
+							<th>Equipo</th>
+							<th>Empleado</th>
+							<th>Auditoría</th>
+							<th>Tiempo de Uso</th>
+							<th style={{ textAlign: "center" }}>Estado</th>
 						</tr>
 					</thead>
 					<tbody>
-						{currentItems.map((h) => (
-							<tr key={h.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+						{currentItems.length > 0 ? (
+							currentItems.map((h) => (
+								<tr key={h.id}>
+									<td style={{ color: "#64748b" }}>
+										<div className='flex-center'>
+											<FaClock /> {formatDateTime(h.fecha_movimiento)}
+										</div>
+									</td>
+									<td>
+										<span className={`badge-type ${h.tipo}`}>
+											{h.tipo === "entrega" ? <FaArrowUp /> : <FaArrowDown />}
+											{h.tipo}
+										</span>
+									</td>
+									<td>
+										<div className='flex-center'>
+											<div className='icon-circle'>
+												<FaLaptop size={12} />
+											</div>
+											<div>
+												<strong style={{ display: "block", color: "#334155" }}>
+													{h.marca} {h.modelo}
+												</strong>
+												<span className='sn-badge'>SN: {h.serie}</span>
+											</div>
+										</div>
+									</td>
+									<td>
+										<div className='flex-center'>
+											<div className='icon-circle user'>
+												<FaUser size={12} />
+											</div>
+											<div>
+												<span
+													style={{
+														display: "block",
+														fontWeight: 600,
+														color: "#334155",
+													}}
+												>
+													{h.empleado_nombre} {h.empleado_apellido}
+												</span>
+												{h.dni && (
+													<span
+														style={{ fontSize: "0.7rem", color: "#94a3b8" }}
+													>
+														DNI: {h.dni}
+													</span>
+												)}
+											</div>
+										</div>
+									</td>
+									<td>
+										{h.admin_nombre ? (
+											<div style={{ fontSize: "0.8rem" }}>
+												<div
+													style={{
+														fontWeight: 600,
+														color: "#4f46e5",
+														display: "flex",
+														alignItems: "center",
+														gap: "5px",
+													}}
+												>
+													<FaUserShield size={12} /> {h.admin_nombre}
+												</div>
+												<div style={{ color: "#64748b", fontSize: "0.7rem" }}>
+													{h.admin_correo}
+												</div>
+											</div>
+										) : (
+											<span
+												style={{
+													color: "#cbd5e1",
+													fontStyle: "italic",
+													fontSize: "0.75rem",
+												}}
+											>
+												Sistema
+											</span>
+										)}
+									</td>
+									<td>
+										{h.tipo === "entrega" ? (
+											<span
+												style={{
+													fontWeight: 600,
+													color: "#059669",
+													background: "#ecfdf5",
+													padding: "2px 6px",
+													borderRadius: "4px",
+													fontSize: "0.8rem",
+												}}
+											>
+												{formatDuration(h.tiempo_uso)}
+											</span>
+										) : (
+											<span style={{ color: "#cbd5e1" }}>-</span>
+										)}
+									</td>
+									<td style={{ textAlign: "center" }}>
+										{h.tipo === "devolucion" && h.estado_equipo_momento ? (
+											<span
+												className={`status-text ${h.estado_equipo_momento === "operativo" ? "ok" : "bad"}`}
+											>
+												{h.estado_equipo_momento}
+											</span>
+										) : (
+											<span style={{ color: "#cbd5e1" }}>-</span>
+										)}
+									</td>
+								</tr>
+							))
+						) : (
+							<tr>
 								<td
+									colSpan='7'
 									style={{
-										padding: "12px",
-										fontSize: "0.85rem",
-										color: "#64748b",
+										textAlign: "center",
+										padding: "30px",
+										color: "#94a3b8",
 									}}
 								>
-									<div
-										style={{
-											display: "flex",
-											alignItems: "center",
-											gap: "6px",
-										}}
-									>
-										<FaClock /> {formatDateTime(h.fecha_movimiento)}
-									</div>
-								</td>
-								<td style={{ padding: "12px" }}>
-									<span
-										style={{
-											padding: "4px 8px",
-											borderRadius: "6px",
-											fontSize: "0.7rem",
-											fontWeight: "bold",
-											textTransform: "uppercase",
-											background: h.tipo === "entrega" ? "#eff6ff" : "#fef2f2",
-											color: h.tipo === "entrega" ? "#1d4ed8" : "#b91c1c",
-											border:
-												h.tipo === "entrega"
-													? "1px solid #bfdbfe"
-													: "1px solid #fecaca",
-											display: "inline-flex",
-											alignItems: "center",
-											gap: "4px",
-										}}
-									>
-										{h.tipo === "entrega" ? <FaArrowUp /> : <FaArrowDown />}
-										{h.tipo}
-									</span>
-								</td>
-								<td style={{ padding: "12px" }}>
-									<div
-										style={{
-											display: "flex",
-											alignItems: "center",
-											gap: "8px",
-										}}
-									>
-										<div
-											style={{
-												background: "#f1f5f9",
-												padding: "6px",
-												borderRadius: "50%",
-												color: "#64748b",
-											}}
-										>
-											<FaLaptop size={12} />
-										</div>
-										<div>
-											<strong
-												style={{
-													color: "#334155",
-													display: "block",
-													fontSize: "0.85rem",
-												}}
-											>
-												{h.marca} {h.modelo}
-											</strong>
-											<span
-												style={{
-													fontSize: "0.7rem",
-													fontFamily: "monospace",
-													color: "#64748b",
-													background: "#f8fafc",
-													padding: "1px 4px",
-													borderRadius: "4px",
-													border: "1px solid #e2e8f0",
-												}}
-											>
-												SN: {h.serie}
-											</span>
-										</div>
-									</div>
-								</td>
-								<td style={{ padding: "12px" }}>
-									<div
-										style={{
-											display: "flex",
-											alignItems: "center",
-											gap: "8px",
-										}}
-									>
-										<div
-											style={{
-												background: "#fdf2f8",
-												padding: "6px",
-												borderRadius: "50%",
-												color: "#db2777",
-											}}
-										>
-											<FaUser size={12} />
-										</div>
-										<div>
-											<span
-												style={{
-													color: "#334155",
-													fontWeight: "600",
-													fontSize: "0.85rem",
-													display: "block",
-												}}
-											>
-												{h.empleado_nombre} {h.empleado_apellido}
-											</span>
-											{h.dni && (
-												<span style={{ fontSize: "0.7rem", color: "#94a3b8" }}>
-													DNI: {h.dni}
-												</span>
-											)}
-										</div>
-									</div>
-								</td>
-								<td style={{ padding: "12px" }}>
-									{h.admin_nombre ? (
-										<div style={{ fontSize: "0.8rem" }}>
-											<div
-												style={{
-													fontWeight: "600",
-													color: "#4f46e5",
-													display: "flex",
-													alignItems: "center",
-													gap: "5px",
-												}}
-											>
-												<FaUserShield size={12} /> {h.admin_nombre}
-											</div>
-											<div style={{ color: "#64748b", fontSize: "0.7rem" }}>
-												{h.admin_correo}
-											</div>
-										</div>
-									) : (
-										<span
-											style={{
-												color: "#cbd5e1",
-												fontStyle: "italic",
-												fontSize: "0.75rem",
-											}}
-										>
-											Sistema
-										</span>
-									)}
-								</td>
-
-								{/* COLUMNA TIEMPO DE USO (Lógica Frontend) */}
-								<td style={{ padding: "12px" }}>
-									{h.tipo === "entrega" ? (
-										<span
-											style={{
-												fontWeight: "600",
-												color: "#059669",
-												fontSize: "0.8rem",
-												background: "#ecfdf5",
-												padding: "2px 6px",
-												borderRadius: "4px",
-											}}
-										>
-											{formatDuration(h.tiempo_uso)}
-										</span>
-									) : (
-										<span style={{ color: "#cbd5e1" }}>-</span>
-									)}
-								</td>
-
-								<td style={{ padding: "12px", textAlign: "center" }}>
-									{h.tipo === "devolucion" && h.estado_equipo_momento ? (
-										<span
-											style={{
-												fontSize: "0.7rem",
-												fontWeight: "bold",
-												textTransform: "uppercase",
-												color:
-													h.estado_equipo_momento === "operativo"
-														? "#16a34a"
-														: "#ef4444",
-											}}
-										>
-											{h.estado_equipo_momento}
-										</span>
-									) : (
-										<span style={{ color: "#cbd5e1" }}>-</span>
-									)}
+									No se encontraron registros que coincidan.
 								</td>
 							</tr>
-						))}
+						)}
 					</tbody>
 				</table>
 
-				{/* PAGINACIÓN */}
-				<div
-					style={{
-						display: "flex",
-						justifyContent: "space-between",
-						alignItems: "center",
-						padding: "15px 20px",
-						borderTop: "1px solid #e2e8f0",
-						background: "#f8fafc",
-					}}
-				>
-					<div style={{ color: "#64748b", fontSize: "0.9rem" }}>
-						Mostrando{" "}
-						<span style={{ fontWeight: "bold" }}>
-							{historialFiltrado.length > 0 ? indexOfFirstItem + 1 : 0}
-						</span>{" "}
-						a{" "}
-						<span style={{ fontWeight: "bold" }}>
-							{Math.min(indexOfLastItem, historialFiltrado.length)}
-						</span>{" "}
-						de{" "}
-						<span style={{ fontWeight: "bold" }}>
-							{historialFiltrado.length}
-						</span>{" "}
-						registros
-					</div>
-					<div style={{ display: "flex", gap: "5px" }}>
-						<button
-							onClick={() => paginate(currentPage - 1)}
-							disabled={currentPage === 1}
-							style={{
-								padding: "6px 12px",
-								border: "1px solid #e2e8f0",
-								borderRadius: "6px",
-								background: currentPage === 1 ? "#f1f5f9" : "white",
-								cursor: currentPage === 1 ? "not-allowed" : "pointer",
-								color: "#64748b",
-							}}
-						>
-							<FaChevronLeft size={12} />
-						</button>
-						{[...Array(totalPages)].map((_, i) => (
+				{/* Footer Paginación */}
+				{currentItems.length > 0 && (
+					<div className='pagination-footer'>
+						<div className='info'>
+							Mostrando <strong>{indexOfFirstItem + 1}</strong> -{" "}
+							<strong>
+								{Math.min(indexOfLastItem, historialFiltrado.length)}
+							</strong>{" "}
+							de <strong>{historialFiltrado.length}</strong>
+						</div>
+						<div className='controls'>
 							<button
-								key={i + 1}
-								onClick={() => paginate(i + 1)}
-								style={{
-									padding: "6px 12px",
-									border:
-										currentPage === i + 1
-											? "1px solid #4f46e5"
-											: "1px solid #e2e8f0",
-									borderRadius: "6px",
-									background: currentPage === i + 1 ? "#4f46e5" : "white",
-									color: currentPage === i + 1 ? "white" : "#64748b",
-									cursor: "pointer",
-									fontWeight: "600",
-									fontSize: "0.9rem",
-								}}
+								onClick={() => paginate(currentPage - 1)}
+								disabled={currentPage === 1}
 							>
-								{i + 1}
+								<FaChevronLeft size={12} />
 							</button>
-						))}
-						<button
-							onClick={() => paginate(currentPage + 1)}
-							disabled={currentPage === totalPages || totalPages === 0}
-							style={{
-								padding: "6px 12px",
-								border: "1px solid #e2e8f0",
-								borderRadius: "6px",
-								background:
-									currentPage === totalPages || totalPages === 0
-										? "#f1f5f9"
-										: "white",
-								cursor: currentPage === totalPages ? "not-allowed" : "pointer",
-								color: "#64748b",
-							}}
-						>
-							<FaChevronRight size={12} />
-						</button>
+							{[...Array(totalPages)].map((_, i) => (
+								<button
+									key={i + 1}
+									onClick={() => paginate(i + 1)}
+									className={currentPage === i + 1 ? "active" : ""}
+								>
+									{i + 1}
+								</button>
+							))}
+							<button
+								onClick={() => paginate(currentPage + 1)}
+								disabled={currentPage === totalPages}
+							>
+								<FaChevronRight size={12} />
+							</button>
+						</div>
 					</div>
-				</div>
+				)}
 			</div>
 		</div>
 	);
