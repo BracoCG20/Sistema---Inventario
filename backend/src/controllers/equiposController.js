@@ -1,9 +1,9 @@
-const db = require("../config/db");
+const db = require('../config/db');
 
 // 1. Obtener todos los equipos + Quién los registró + Antigüedad calculada
 const getEquipos = async (req, res) => {
-	try {
-		const query = `
+  try {
+    const query = `
       SELECT e.*, 
              ua.nombre as creador_nombre, 
              ua.email as creador_email,
@@ -28,137 +28,163 @@ const getEquipos = async (req, res) => {
       LEFT JOIN usuarios_admin ua ON e.creado_por_id = ua.id
       ORDER BY e.created_at DESC
     `;
-		const response = await db.query(query);
-		res.status(200).json(response.rows);
-	} catch (error) {
-		console.error("Error SQL:", error.message);
-		res.status(500).json({ error: error.message });
-	}
+    const response = await db.query(query);
+    res.status(200).json(response.rows);
+  } catch (error) {
+    console.error('Error SQL:', error.message);
+    res.status(500).json({ error: error.message });
+  }
 };
+
 // 2. Crear un nuevo equipo
 const createEquipo = async (req, res) => {
-	const creadoPor = req.user ? req.user.id : null;
-	// Nota: 'marca' aquí llega como el NOMBRE de la marca (string),
-	// ya que el frontend se encarga de enviarlo así.
-	const { marca, modelo, serie, estado, especificaciones, fecha_compra } =
-		req.body;
+  const creadoPor = req.user ? req.user.id : null;
+  const { marca, modelo, serie, estado, especificaciones, fecha_compra } =
+    req.body;
 
-	try {
-		const checkSerie = await db.query(
-			"SELECT * FROM equipos WHERE serie = $1",
-			[serie],
-		);
-		if (checkSerie.rows.length > 0) {
-			return res.status(400).json({ error: "El número de serie ya existe." });
-		}
+  try {
+    const checkSerie = await db.query(
+      'SELECT * FROM equipos WHERE serie = $1',
+      [serie],
+    );
+    if (checkSerie.rows.length > 0) {
+      return res.status(400).json({ error: 'El número de serie ya existe.' });
+    }
 
-		const newEquipo = await db.query(
-			`INSERT INTO equipos (marca, modelo, serie, estado, especificaciones, fecha_compra, creado_por_id) 
+    const newEquipo = await db.query(
+      `INSERT INTO equipos (marca, modelo, serie, estado, especificaciones, fecha_compra, creado_por_id) 
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-			[
-				marca, // Guardamos el nombre de la marca (relación lógica o FK si configuraste string)
-				modelo,
-				serie,
-				estado || "operativo",
-				especificaciones,
-				fecha_compra || null,
-				creadoPor,
-			],
-		);
+      [
+        marca,
+        modelo,
+        serie,
+        estado || 'operativo',
+        especificaciones,
+        fecha_compra || null,
+        creadoPor,
+      ],
+    );
 
-		res.status(201).json({
-			message: "Equipo registrado correctamente",
-			equipo: newEquipo.rows[0],
-		});
-	} catch (error) {
-		console.error(error);
-		res.status(500).json({ error: "Error al crear el equipo" });
-	}
+    res.status(201).json({
+      message: 'Equipo registrado correctamente',
+      equipo: newEquipo.rows[0],
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al crear el equipo' });
+  }
 };
 
 // 3. Actualizar Equipo
 const updateEquipo = async (req, res) => {
-	const { id } = req.params;
-	const { marca, modelo, serie, estado, especificaciones, fecha_compra } =
-		req.body;
+  const { id } = req.params;
+  const { marca, modelo, serie, estado, especificaciones, fecha_compra } =
+    req.body;
 
-	try {
-		await db.query(
-			"UPDATE equipos SET marca=$1, modelo=$2, serie=$3, estado=$4, especificaciones=$5, fecha_compra=$6 WHERE id=$7",
-			[
-				marca,
-				modelo,
-				serie,
-				estado,
-				especificaciones,
-				fecha_compra || null,
-				id,
-			],
-		);
-		res.json({ message: "Equipo actualizado" });
-	} catch (error) {
-		console.error(error);
-		res.status(500).json({ error: "Error al actualizar equipo" });
-	}
+  try {
+    await db.query(
+      'UPDATE equipos SET marca=$1, modelo=$2, serie=$3, estado=$4, especificaciones=$5, fecha_compra=$6 WHERE id=$7',
+      [
+        marca,
+        modelo,
+        serie,
+        estado,
+        especificaciones,
+        fecha_compra || null,
+        id,
+      ],
+    );
+    res.json({ message: 'Equipo actualizado' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al actualizar equipo' });
+  }
 };
 
-// 4. Eliminar Equipo
-const deleteEquipo = async (req, res) => {
-	const { id } = req.params;
-	try {
-		await db.query("DELETE FROM equipos WHERE id = $1", [id]);
-		res.json({ message: "Equipo eliminado" });
-	} catch (error) {
-		console.error(error);
-		res.status(500).json({
-			error: "No se puede eliminar (probablemente tiene historial asociado)",
-		});
-	}
+// 4. ELIMINADA: La eliminación física fue reemplazada por la baja lógica.
+
+// 5. NUEVO: Dar de Baja Equipo (Baja Lógica)
+const deactivateEquipo = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await db.query(
+      'UPDATE equipos SET activo = false WHERE id = $1 RETURNING *',
+      [id],
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Equipo no encontrado' });
+    }
+
+    res.json({ message: 'Equipo dado de baja correctamente' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al desactivar el equipo' });
+  }
 };
 
-// --- NUEVAS FUNCIONES PARA MARCAS ---
+// 6. NUEVO: Reactivar Equipo
+const activateEquipo = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await db.query(
+      'UPDATE equipos SET activo = true WHERE id = $1 RETURNING *',
+      [id],
+    );
 
-// 5. Obtener Marcas
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Equipo no encontrado' });
+    }
+
+    res.json({ message: 'Equipo reactivado correctamente' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al reactivar el equipo' });
+  }
+};
+
+// --- FUNCIONES PARA MARCAS ---
+
+// 7. Obtener Marcas
 const getMarcas = async (req, res) => {
-	try {
-		const response = await db.query("SELECT * FROM marcas ORDER BY nombre ASC");
-		res.json(response.rows);
-	} catch (error) {
-		console.error(error);
-		res.status(500).json({ error: "Error al cargar marcas" });
-	}
+  try {
+    const response = await db.query('SELECT * FROM marcas ORDER BY nombre ASC');
+    res.json(response.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al cargar marcas' });
+  }
 };
 
-// 6. Crear Marca (Para el select Creatable)
+// 8. Crear Marca
 const createMarca = async (req, res) => {
-	const { nombre } = req.body;
-	try {
-		// Intentar insertar, si existe no hace nada (ON CONFLICT requiere constraint en BD)
-		// O hacemos un check simple:
-		const check = await db.query("SELECT * FROM marcas WHERE nombre = $1", [
-			nombre.toUpperCase(),
-		]);
+  const { nombre } = req.body;
+  try {
+    const check = await db.query('SELECT * FROM marcas WHERE nombre = $1', [
+      nombre.toUpperCase(),
+    ]);
 
-		if (check.rows.length > 0) {
-			return res.json(check.rows[0]); // Ya existe, la devolvemos
-		}
+    if (check.rows.length > 0) {
+      return res.json(check.rows[0]);
+    }
 
-		const newMarca = await db.query(
-			"INSERT INTO marcas (nombre) VALUES ($1) RETURNING *",
-			[nombre.toUpperCase()], // Guardamos siempre en mayúsculas
-		);
-		res.json(newMarca.rows[0]);
-	} catch (error) {
-		console.error(error);
-		res.status(500).json({ error: "Error al crear marca" });
-	}
+    const newMarca = await db.query(
+      'INSERT INTO marcas (nombre) VALUES ($1) RETURNING *',
+      [nombre.toUpperCase()],
+    );
+    res.json(newMarca.rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al crear marca' });
+  }
 };
 
 module.exports = {
-	getEquipos,
-	createEquipo,
-	updateEquipo,
-	deleteEquipo,
-	getMarcas,
-	createMarca, // <--- Exportamos las nuevas
+  getEquipos,
+  createEquipo,
+  updateEquipo,
+  deactivateEquipo, // <-- Exportamos la función de baja
+  activateEquipo, // <-- Exportamos la función de reactivación
+  getMarcas,
+  createMarca,
 };

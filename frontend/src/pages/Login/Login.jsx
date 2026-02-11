@@ -43,7 +43,6 @@ const Login = () => {
       </div>
       <div className='login-card'>
         <h2>Sistema Inventario</h2>
-        <p>Ingresa tus credenciales de administrador</p>
 
         <form onSubmit={handleSubmit}>
           <div className='input-group'>

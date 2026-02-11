@@ -2,10 +2,10 @@
 
 .historial-container {
   padding: 2rem;
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
 
-  // --- HEADER ---
+  // --- CABECERA ---
   .page-header {
     display: flex;
     justify-content: space-between;
@@ -15,71 +15,79 @@
     h1 {
       font-size: 1.8rem;
       font-weight: 700;
-      color: #1e293b;
+      color: v.$primary;
       margin: 0;
     }
 
-    // Botón Excel Verde
-    .btn-excel {
-      background-color: #10b981;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-action-header {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 600;
       font-size: 0.95rem;
-      box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
-      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+      color: white;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 
       &:hover {
-        background-color: #059669;
         transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
       }
 
-      svg {
-        font-size: 1.1rem;
+      &.btn-excel {
+        background-color: #10b981;
+        &:hover {
+          background-color: #059669;
+        }
       }
     }
   }
 
-  // --- BARRA DE FILTROS ---
-  .filters-bar {
+  // --- FILTROS ARREGLADOS ---
+  .filters-container {
     display: flex;
-    gap: 15px;
-    margin-bottom: 20px;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    align-items: center;
 
-    // Input de Búsqueda
-    .search-input {
-      flex: 1;
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    // Buscador
+    .search-bar {
+      flex: 1; // Toma todo el espacio disponible
+      background: white;
+      padding: 0 18px;
+      height: 46px; // Misma altura que el Select
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
       display: flex;
       align-items: center;
-      // Fondo semi-transparente para integrarse
-      background: rgba(255, 255, 255, 0.8);
-      padding: 0 15px;
-      height: 45px;
-      border-radius: 8px;
-      border: 1px solid rgba(226, 232, 240, 0.8); // Borde más sutil
-      transition: all 0.2s;
-      backdrop-filter: blur(4px); // Un ligero desenfoque
+      gap: 12px;
+      transition: all 0.3s ease;
 
       &:focus-within {
-        border-color: #4f46e5;
-        background: white; // Se vuelve sólido al enfocar
-        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        border-color: v.$primary;
+        box-shadow: 0 0 0 3px rgba(v.$primary, 0.1);
       }
 
       input {
         border: none;
         outline: none;
-        margin-left: 10px;
         width: 100%;
         font-size: 0.95rem;
-        color: #334155;
+        color: v.$text-main;
         background: transparent;
         &::placeholder {
           color: #94a3b8;
@@ -87,180 +95,234 @@
       }
     }
 
-    // Contenedor del React Select
-    .type-filter {
-      min-width: 250px;
+    // Dropdown Select
+    .select-filter {
+      width: 300px; // Ancho fijo para el select
+
+      @media (max-width: 768px) {
+        width: 100%;
+      }
     }
   }
 
-  // --- TABLA CON EFECTO GLASSMORPHISM RECUPERADO ---
+  // --- TABLA SÓLIDA TIPO EQUIPOS ---
   .table-container {
-    // AQUI ESTA LA CLAVE: Usamos el mixin que tenías originalmente
-    @include v.glass-card;
-
-    padding: 0; // Sin padding interno para que la tabla llene el contenedor
-    overflow: hidden; // Para que el border-radius del contenedor recorte la tabla
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+    border: 1px solid #f1f5f9;
+    overflow: hidden;
 
     table {
       width: 100%;
       border-collapse: collapse;
 
       thead tr {
-        // Fondo semi-transparente para la cabecera, no sólido
-        background: #efe9fb;
-        border-bottom: 1px solid rgba(226, 232, 240, 0.6);
-
+        background-color: #eef2ff;
         th {
-          padding: 14px 16px;
-          font-weight: 700;
-          font-size: 0.85rem;
-          text-transform: uppercase;
-          color: #4f46e5;
+          padding: 16px 20px;
           text-align: left;
-          letter-spacing: 0.5px;
+          font-weight: 700;
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          color: #4338ca;
+          letter-spacing: 0.8px;
+          &.center {
+            text-align: center;
+          }
         }
       }
 
       tbody tr {
-        // Borde sutil entre filas
-        border-bottom: 1px solid rgba(241, 245, 249, 0.4);
-        transition: background 0.2s;
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.2s ease;
+        position: relative;
 
-        // Hover también semi-transparente
         &:hover {
-          background: rgba(248, 250, 252, 0.6);
+          background-color: #f8fafc;
+        }
+
+        td:first-child {
+          position: relative;
+          &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background-color: transparent;
+            transition: background-color 0.2s ease;
+          }
+        }
+
+        &:hover td:first-child::before {
+          background-color: v.$primary;
         }
 
         td {
-          padding: 14px 16px;
-          font-size: 0.9rem;
-          // Alineación vertical centrada para todo el contenido
+          padding: 14px 20px;
           vertical-align: middle;
+          &.center {
+            text-align: center;
+          }
         }
       }
     }
   }
 
-  // --- COMPONENTES INTERNOS ALINEADOS ---
-  .flex-center {
+  // --- CELDAS INTERNAS ---
+  .info-cell {
     display: flex;
-    align-items: center; // Centrado vertical perfecto
-    gap: 10px;
+    flex-direction: column;
+    .name {
+      font-weight: 600;
+      color: #1e293b;
+      font-size: 0.9rem;
+    }
+    .audit-text {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 2px;
+    }
   }
 
-  .icon-circle {
-    background: rgba(241, 245, 249, 0.8); // Ligeramente transparente
-    padding: 8px;
-    border-radius: 50%;
-    color: #64748b;
+  .audit-cell {
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      .name {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.85rem;
+      }
+      .audit-text {
+        font-size: 0.7rem;
+        color: #94a3b8;
+        margin-top: 2px;
+      }
+    }
+    .system-text {
+      font-style: italic;
+      color: #cbd5e1;
+      font-size: 0.85rem;
+    }
+  }
+
+  .email-cell {
     display: flex;
     align-items: center;
-    justify-content: center;
-    // Sombra muy suave para dar volumen
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-
-    &.user {
-      background: rgba(253, 242, 248, 0.8);
-      color: #db2777;
+    gap: 8px;
+    color: #475569;
+    font-size: 0.85rem;
+    font-weight: 600;
+    svg {
+      color: #94a3b8;
+      font-size: 1rem;
     }
   }
 
-  .sn-badge {
-    font-size: 0.75rem;
-    font-family: monospace;
-    background: rgba(241, 245, 249, 0.8);
-    padding: 2px 6px;
-    border-radius: 4px;
-    color: #64748b;
-    border: 1px solid rgba(226, 232, 240, 0.6);
-    display: inline-block; // Para que respete padding/margin
-  }
-
-  .badge-type {
+  // --- BADGES ---
+  .status-badge {
     display: inline-flex;
-    align-items: center; // Centrado vertical de icono y texto
+    align-items: center;
     justify-content: center;
-    gap: 5px;
     padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 0.75rem;
+    border-radius: 20px;
+    font-size: 0.65rem;
     font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1;
+    white-space: nowrap;
 
+    // Movimientos
     &.entrega {
-      background: rgba(239, 246, 255, 0.9);
-      color: #1d4ed8;
-      border: 1px solid rgba(191, 219, 254, 0.6);
+      background-color: #dcfce7;
+      color: #15803d;
+      border: 1px solid #c6ffdb;
     }
     &.devolucion {
-      background: rgba(254, 242, 242, 0.9);
+      background-color: #fee2e2;
       color: #b91c1c;
-      border: 1px solid rgba(254, 202, 202, 0.6);
+      border: 1px solid #fecaca;
+    }
+
+    // Estados físicos
+    &.operativo {
+      background-color: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    &.malogrado {
+      background-color: #ffedd5;
+      color: #9a3412;
+      border: 1px solid #fed7aa;
     }
   }
 
-  .status-text {
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    display: inline-block;
-    &.ok {
-      color: #16a34a;
-    }
-    &.bad {
-      color: #ef4444;
-    }
-  }
-
-  // --- PAGINACIÓN CON ESTILO GLASS ---
+  // --- PAGINACIÓN ---
   .pagination-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
-    // Fondo semi-transparente que se integra con la tabla
-    background: rgba(248, 250, 252, 0.5);
-    border-top: 1px solid rgba(226, 232, 240, 0.6);
+    padding: 16px 25px;
+    border-top: 1px solid #e2e8f0;
+    background-color: white;
 
     .info {
       color: #64748b;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       strong {
         color: #1e293b;
+        font-weight: 700;
       }
     }
 
     .controls {
       display: flex;
-      gap: 5px;
+      gap: 8px;
+
       button {
-        padding: 6px 12px;
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        border-radius: 6px;
-        background: rgba(255, 255, 255, 0.6); // Botones semi-transparentes
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background-color: white;
         cursor: pointer;
         color: #64748b;
-        font-size: 0.9rem;
         transition: all 0.2s;
 
-        &:disabled {
+        &:disabled:not(.active) {
           opacity: 0.5;
           cursor: not-allowed;
+          background-color: #f8fafc;
+        }
+
+        &:hover:not(:disabled) {
+          background-color: v.$primary;
+          color: white;
+          border-color: v.$primary;
         }
 
         &.active {
-          background: #4f46e5;
+          background-color: v.$primary;
           color: white;
-          border-color: #4f46e5;
-          box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
-        }
-
-        &:hover:not(:disabled):not(.active) {
-          background: white;
-          border-color: #4f46e5;
-          color: #4f46e5;
+          border-color: v.$primary;
+          cursor: default;
         }
       }
     }
+  }
+
+  .loading-state,
+  .no-data {
+    padding: 3rem;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 1.1rem;
   }
 }

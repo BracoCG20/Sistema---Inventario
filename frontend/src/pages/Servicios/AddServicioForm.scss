@@ -1,0 +1,103 @@
+@use '../../styles/variables' as v;
+
+.equipo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  padding: 0.5rem;
+  max-height: 80vh;
+  overflow-y: auto;
+
+  // Scrollbar (igual que en los otros modales si el contenido es largo)
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 4px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr; // Dos columnas
+    gap: 1.5rem;
+
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr; // Una columna en móvil
+    }
+  }
+  .form-row-all {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #64748b; // Mismo color de las etiquetas de tu imagen
+      text-transform: none; // Quitamos las mayúsculas para coincidir
+      letter-spacing: normal;
+      display: flex;
+      align-items: center;
+    }
+
+    // Estilos para los inputs para que se vean como tu foto
+    input,
+    select {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      font-size: 0.95rem;
+      color: #334155;
+      background-color: #fff;
+      font-family: inherit;
+      transition: all 0.2s ease;
+
+      &::placeholder {
+        color: #94a3b8;
+      }
+
+      &:focus {
+        outline: none;
+        border-color: v.$primary;
+        box-shadow: 0 0 0 1px v.$primary;
+      }
+    }
+  }
+
+  .btn-submit {
+    // Estilo exacto de tu botón morado ancho
+    background-color: v.$primary;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1rem;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+      filter: brightness(0.9);
+      transform: translateY(-1px);
+    }
+
+    &:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+  }
+}

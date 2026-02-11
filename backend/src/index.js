@@ -10,7 +10,7 @@ const movimientosRoutes = require('./routes/movimientosRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const authRoutes = require('./routes/authRoutes');
 const empresasRoutes = require('./routes/empresasRoutes');
-
+const serviciosRoutes = require('./routes/serviciosRoutes');
 // Middleware de autenticación
 const verifyToken = require('./middlewares/authMiddleware');
 
@@ -33,6 +33,7 @@ app.use('/uploads', express.static('uploads'));
 // --- RUTAS PROTEGIDAS ---
 app.use('/api/equipos', verifyToken, equiposRoutes);
 app.use('/api/usuarios', verifyToken, usuariosRoutes);
+app.use('/api/servicios', verifyToken, serviciosRoutes);
 
 // Movimientos e Historial (usan el mismo controlador)
 app.use('/api/movimientos', verifyToken, movimientosRoutes);

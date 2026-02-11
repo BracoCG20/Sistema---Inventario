@@ -4,9 +4,10 @@ const {
   getEquipos,
   createEquipo,
   updateEquipo,
-  deleteEquipo,
-  getMarcas, // Importar
-  createMarca, // Importar
+  deactivateEquipo, // <-- Reemplaza a deleteEquipo
+  activateEquipo, // <-- Nueva función importada
+  getMarcas,
+  createMarca,
 } = require('../controllers/equiposController');
 
 // --- RUTAS DE MARCAS (Deben ir primero) ---
@@ -17,6 +18,9 @@ router.post('/marcas', createMarca);
 router.get('/', getEquipos);
 router.post('/', createEquipo);
 router.put('/:id', updateEquipo);
-router.delete('/:id', deleteEquipo);
+
+// --- RUTAS DE ESTADO (BAJA LÓGICA Y REACTIVACIÓN) ---
+router.put('/:id/deactivate', deactivateEquipo); // Para dar de baja
+router.put('/:id/activate', activateEquipo); // Para reactivar
 
 module.exports = router;

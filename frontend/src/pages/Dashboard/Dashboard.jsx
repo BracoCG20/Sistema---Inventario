@@ -223,7 +223,7 @@ const Dashboard = () => {
           </div>
         </div>
         <div className='chart-card'>
-          <h3>Estado de Flota</h3>
+          <h3>Estado de Equipos</h3>
           <div className='chart-wrapper'>
             <StatusChart data={statusData} />
           </div>

@@ -9,6 +9,7 @@ import {
   FaEye,
   FaEnvelope,
   FaExclamationTriangle,
+  FaCalendarAlt, // <-- Agregado para el diseño de fecha
 } from 'react-icons/fa';
 
 const EntregaTable = ({
@@ -35,22 +36,18 @@ const EntregaTable = ({
   };
 
   return (
-    <div className='table-card'>
-      <h3>
-        <FaHistory /> Últimas Entregas
-      </h3>
+    <div className='table-container'>
+      <div className='table-header-title'>
+        <h3>
+          <FaHistory /> Últimas Entregas
+        </h3>
+      </div>
       <table>
         <thead>
           <tr>
-            {/* 1. FECHA */}
             <th>Fecha y Hora</th>
-
-            {/* 2. EQUIPO (Modelo y Serie) */}
             <th>Equipo Entregado</th>
-
-            {/* 3. USUARIO */}
             <th>Usuario</th>
-
             <th className='center'>Carg.</th>
             <th className='center'>Correo</th>
             <th className='center'>Acta</th>
@@ -62,20 +59,26 @@ const EntregaTable = ({
             <tr key={h.id}>
               {/* FECHA */}
               <td>
-                <span className='date-text'>
-                  {formatDateTime(h.fecha_movimiento)}
-                </span>
+                <div className='email-cell'>
+                  <FaCalendarAlt /> {formatDateTime(h.fecha_movimiento)}
+                </div>
               </td>
 
               {/* EQUIPO */}
               <td>
-                <strong>{h.modelo}</strong>
-                <span className='text-muted'>S/N: {h.serie}</span>
+                <div className='info-cell'>
+                  <span className='name'>{h.modelo}</span>
+                  <span className='audit-text'>S/N: {h.serie}</span>
+                </div>
               </td>
 
               {/* USUARIO */}
               <td>
-                {h.empleado_nombre} {h.empleado_apellido}
+                <div className='info-cell'>
+                  <span className='name'>
+                    {h.empleado_nombre} {h.empleado_apellido}
+                  </span>
+                </div>
               </td>
 
               {/* CARGADOR */}
@@ -108,18 +111,20 @@ const EntregaTable = ({
 
               {/* PDF GENERADO */}
               <td className='center'>
-                <button
-                  onClick={() => onVerPdfOriginal(h)}
-                  className='btn-icon pdf'
-                  title='Ver Original'
-                >
-                  <FaFilePdf />
-                </button>
+                <div className='actions-cell'>
+                  <button
+                    onClick={() => onVerPdfOriginal(h)}
+                    className='action-btn pdf-btn'
+                    title='Ver Original'
+                  >
+                    <FaFilePdf />
+                  </button>
+                </div>
               </td>
 
-              {/* FIRMA (BOTONES CENTRADOS) */}
+              {/* FIRMA */}
               <td className='center'>
-                <div className='action-buttons-wrapper'>
+                <div className='actions-cell'>
                   {!h.pdf_firmado_url && (
                     <button
                       onClick={() => onSubirClick(h.id)}
@@ -130,33 +135,31 @@ const EntregaTable = ({
                   )}
 
                   {h.pdf_firmado_url && h.firma_valida !== false && (
-                    <div className='signed-actions'>
+                    <>
                       <button
                         onClick={() => onVerFirmado(h.pdf_firmado_url)}
-                        className='btn-view'
+                        className='action-btn view'
                         title='Ver Firmado'
                       >
                         <FaEye />
                       </button>
                       <button
                         onClick={() => onInvalidar(h.id)}
-                        className='btn-invalid'
+                        className='action-btn delete'
                         title='Invalidar'
                       >
                         <FaBan />
                       </button>
-                    </div>
+                    </>
                   )}
 
                   {h.pdf_firmado_url && h.firma_valida === false && (
-                    <div className='rejected-wrapper'>
-                      <button
-                        onClick={() => onSubirClick(h.id)}
-                        className='btn-upload re-upload'
-                      >
-                        <FaUpload /> Re-subir
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => onSubirClick(h.id)}
+                      className='btn-upload re-upload'
+                    >
+                      <FaUpload /> Re-subir
+                    </button>
                   )}
                 </div>
               </td>
