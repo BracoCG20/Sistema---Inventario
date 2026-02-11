@@ -368,7 +368,7 @@ const registrarDevolucionConCorreo = async (req, res) => {
 	}
 };
 
-// --- 5. OBTENER HISTORIAL (CORREGIDO TIEMPO DE USO) ---
+// --- 5. OBTENER HISTORIAL (CORREGIDO TIEMPO DE USO Y EMPRESAS) ---
 const obtenerHistorial = async (req, res) => {
 	try {
 		const query = `
@@ -382,8 +382,10 @@ const obtenerHistorial = async (req, res) => {
             emp.apellidos as empleado_apellido,
             emp.dni,    
             emp.genero,
+            emp.empresa as empleado_empresa,   -- <--- NUEVO: Empresa del colaborador
             u.nombre as admin_nombre, 
             u.email as admin_correo,
+            u.empresa as admin_empresa,        -- <--- NUEVO: Empresa del administrador
 
             -- LÓGICA DE TIEMPO DE USO INTELIGENTE --
             CASE 

@@ -214,9 +214,8 @@ const DevolucionTable = ({
 										<div
 											style={{
 												display: "flex",
-												gap: "12px",
+												gap: "8px",
 												justifyContent: "center",
-												alignItems: "center",
 											}}
 										>
 											<button
@@ -229,6 +228,8 @@ const DevolucionTable = ({
 													padding: "6px",
 													cursor: "pointer",
 													fontSize: "1.1rem",
+													display: "flex",
+													alignItems: "center",
 												}}
 												title='Ver Firmado'
 											>
@@ -244,6 +245,8 @@ const DevolucionTable = ({
 													padding: "6px",
 													cursor: "pointer",
 													fontSize: "1.1rem",
+													display: "flex",
+													alignItems: "center",
 												}}
 												title='Invalidar'
 											>

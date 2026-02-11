@@ -1,69 +1,69 @@
 // Usamos el sistema de módulos de Sass
-@use './styles/variables' as v;
+@use "./styles/variables" as v;
 
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Inter', system-ui, sans-serif;
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+	font-family: "Inter", system-ui, sans-serif;
 }
 
 body {
-  background-color: v.$bg-body; // Usamos el alias 'v'
-  color: v.$text-main;
-  min-height: 100vh;
+	background-color: v.$bg-body; // Usamos el alias 'v'
+	color: v.$text-main;
+	min-height: 100vh;
 
-  // Fondo Claro: Un degradado muy sutil para que el cristal resalte
-  background-image:
-    radial-gradient(
-      circle at 15% 50%,
-      rgba(v.$primary, 0.08) 0%,
-      transparent 25%
-    ),
-    radial-gradient(
-      circle at 85% 30%,
-      rgba(v.$secondary, 0.08) 0%,
-      transparent 25%
-    );
+	// Fondo Claro: Un degradado muy sutil para que el cristal resalte
+	background-image:
+		radial-gradient(
+			circle at 15% 50%,
+			rgba(v.$primary, 0.08) 0%,
+			transparent 25%
+		),
+		radial-gradient(
+			circle at 85% 30%,
+			rgba(v.$secondary, 0.08) 0%,
+			transparent 25%
+		);
 }
 
 // Scrollbar
 ::-webkit-scrollbar {
-  width: 8px;
+	width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: v.$bg-body;
+	background: v.$bg-body;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1; // Gris claro para el scroll
-  border-radius: 4px;
+	background: #cbd5e1; // Gris claro para el scroll
+	border-radius: 4px;
 
-  &:hover {
-    background: #94a3b8;
-  }
+	&:hover {
+		background: #94a3b8;
+	}
 }
 
 select {
-  // Asegura que herede la fuente correcta
-  font-family: 'Inter', system-ui, sans-serif;
+	// Asegura que herede la fuente correcta
+	font-family: "Inter", system-ui, sans-serif;
 
-  // Estilo de las opciones internas (Firefox y algunos navegadores modernos)
-  option {
-    padding: 10px;
-    background-color: white;
-    color: v.$text-main;
-    font-size: 1rem;
+	// Estilo de las opciones internas (Firefox y algunos navegadores modernos)
+	option {
+		padding: 10px;
+		background-color: white;
+		color: v.$text-main;
+		font-size: 1rem;
 
-    &:hover,
-    &:checked {
-      background-color: rgba(v.$primary, 0.1) !important;
-      color: v.$primary !important;
-    }
-  }
+		&:hover,
+		&:checked {
+			background-color: rgba(v.$primary, 0.1) !important;
+			color: v.$primary !important;
+		}
+	}
 }
 
 // Corrección para Placeholder en Selects (la primera opción vacía o "-- Seleccione --")
 select:invalid,
-select option[value=''] {
-  color: v.$text-muted;
+select option[value=""] {
+	color: v.$text-muted;
 }

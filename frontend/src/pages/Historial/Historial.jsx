@@ -74,6 +74,7 @@ const Historial = () => {
 		const fetchHistorial = async () => {
 			try {
 				const res = await api.get("/historial");
+				console.log("Datos del primer registro:", res.data[0]); // <--- VERIFICA ESTO
 				setHistorial(res.data);
 			} catch (error) {
 				console.error(error);
@@ -121,13 +122,18 @@ const Historial = () => {
 			Serie: h.serie,
 			Empleado: `${h.empleado_nombre} ${h.empleado_apellido}`,
 			DNI: h.dni || "-",
+			// Nueva columna: Empresa del Colaborador
+			"Empresa Colaborador": h.empleado_empresa || h.empresa_empleado || "-",
 			Responsable: h.admin_nombre ? h.admin_nombre : "Sistema",
+			// Nueva columna: Empresa del Responsable (Admin)
+			"Empresa Responsable": h.admin_empresa || h.empresa_admin || "Sistema",
 			"Correo Responsable": h.admin_correo || "-",
 			"Tiempo de Uso":
 				h.tipo === "entrega" ? formatDuration(h.tiempo_uso) : "-",
 			"Estado Final": h.estado_equipo_momento || "-",
 			Observaciones: h.observaciones || "",
 		}));
+
 		const ws = XLSX.utils.json_to_sheet(dataParaExcel);
 		const wb = XLSX.utils.book_new();
 		XLSX.utils.book_append_sheet(wb, ws, "Historial");

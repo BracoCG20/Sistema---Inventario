@@ -72,8 +72,9 @@ const getPerfil = async (req, res) => {
 	try {
 		const id = req.user.id; // Viene del middleware verifyToken
 
+		// SOLUCIÓN: Agregamos 'rol_id' al SELECT
 		const query = `
-            SELECT id, nombre, apellidos, nombre_usuario, email, empresa, cargo, foto_url, telefono, fecha_creacion, fecha_modificacion 
+            SELECT id, nombre, apellidos, nombre_usuario, email, empresa, cargo, foto_url, telefono, fecha_creacion, fecha_modificacion, rol_id 
             FROM usuarios_admin WHERE id = $1
         `;
 

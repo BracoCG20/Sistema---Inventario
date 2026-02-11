@@ -21,7 +21,7 @@ import {
 } from "react-icons/fa";
 import Modal from "../../components/Modal/Modal";
 import AddUsuarioForm from "./AddUsuarioForm";
-import "./Usuarios.scss"; // Importamos el nuevo SCSS
+import "./Usuarios.scss";
 
 const Usuarios = () => {
 	const [usuarios, setUsuarios] = useState([]);
@@ -181,6 +181,7 @@ const Usuarios = () => {
 								<th>Colaborador</th>
 								<th>Correo Electrónico</th>
 								<th>Contacto</th>
+								<th>Empresa</th>
 								<th>Cargo</th>
 								<th className='center'>Acciones</th>
 							</tr>
@@ -249,11 +250,19 @@ const Usuarios = () => {
 											)}
 										</td>
 
+										{/* MODIFICADO: Uso de clase SCSS */}
 										<td>
-											<div className='cargo-cell'>
-												<span className='empresa'>{user.empresa}</span>
+											<span className='empresa-text'>
+												{user.empresa || "-"}
+											</span>
+										</td>
+
+										<td>
+											{user.cargo ? (
 												<span className='cargo-badge'>{user.cargo}</span>
-											</div>
+											) : (
+												<span style={{ color: "#cbd5e1" }}>-</span>
+											)}
 										</td>
 
 										<td>
@@ -263,14 +272,14 @@ const Usuarios = () => {
 														<button
 															className='action-btn edit'
 															onClick={() => handleEdit(user)}
-															title='Editar'
+															data-tooltip='Editar'
 														>
 															<FaEdit />
 														</button>
 														<button
 															className='action-btn delete'
 															onClick={() => confirmDelete(user)}
-															title='Dar de baja'
+															data-tooltip='Dar de baja'
 														>
 															<FaBan />
 														</button>
@@ -279,7 +288,7 @@ const Usuarios = () => {
 													<button
 														className='action-btn activate'
 														onClick={() => handleActivate(user)}
-														title='Reactivar Usuario'
+														data-tooltip='Reactivar Usuario'
 													>
 														<FaUndo />
 													</button>
