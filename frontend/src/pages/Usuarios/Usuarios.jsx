@@ -28,6 +28,9 @@ const Usuarios = () => {
 	const [loading, setLoading] = useState(true);
 	const [searchTerm, setSearchTerm] = useState("");
 
+	// --- LÓGICA DE ROL IDÉNTICA A CONFIGURACION Y EQUIPOS ---
+	const [userRole, setUserRole] = useState(null);
+
 	// Paginación
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 8;
@@ -40,8 +43,14 @@ const Usuarios = () => {
 	const [usuarioToEdit, setUsuarioToEdit] = useState(null);
 	const [usuarioToDelete, setUsuarioToDelete] = useState(null);
 
-	const fetchUsuarios = async () => {
+	// 1. CARGAR DATOS (PERFIL PARA ROL + LISTA DE USUARIOS)
+	const fetchData = async () => {
+		setLoading(true);
 		try {
+			// Obtenemos el perfil para validar el rol (Igual que en Configuracion.jsx)
+			const resPerfil = await api.get("/auth/perfil");
+			setUserRole(Number(resPerfil.data.rol_id)); // Convertimos a número para comparar con 1
+
 			const res = await api.get("/usuarios");
 			const sorted = res.data.sort((a, b) => {
 				if (a.activo === b.activo) return a.nombres.localeCompare(b.nombres);
@@ -49,6 +58,7 @@ const Usuarios = () => {
 			});
 			setUsuarios(sorted);
 		} catch (error) {
+			console.error(error);
 			toast.error("Error al cargar datos");
 		} finally {
 			setLoading(false);
@@ -56,7 +66,7 @@ const Usuarios = () => {
 	};
 
 	useEffect(() => {
-		fetchUsuarios();
+		fetchData();
 	}, []);
 
 	useEffect(() => {
@@ -94,6 +104,7 @@ const Usuarios = () => {
 			Género: u.genero,
 			Teléfono: u.telefono || "-",
 			"Registrado Por": u.creador_nombre || "Sistema",
+			"Empresa de Registro": u.creador_empresa || "-",
 			"Email Registro": u.creador_email || "-",
 		}));
 		const ws = XLSX.utils.json_to_sheet(dataParaExcel);
@@ -119,7 +130,7 @@ const Usuarios = () => {
 		try {
 			await api.delete(`/usuarios/${usuarioToDelete.id}`);
 			toast.success("Colaborador dado de baja");
-			fetchUsuarios();
+			fetchData();
 			setIsDeleteModalOpen(false);
 			setUsuarioToDelete(null);
 		} catch (error) {
@@ -130,14 +141,14 @@ const Usuarios = () => {
 		try {
 			await api.put(`/usuarios/${user.id}/activate`);
 			toast.success(`Colaborador ${user.nombres} reactivado`);
-			fetchUsuarios();
+			fetchData();
 		} catch (error) {
 			toast.error("Error al reactivar usuario");
 		}
 	};
 	const handleFormSuccess = () => {
 		setIsFormModalOpen(false);
-		fetchUsuarios();
+		fetchData();
 	};
 
 	if (loading) return <div className='loading-state'>Cargando...</div>;
@@ -187,111 +198,109 @@ const Usuarios = () => {
 							</tr>
 						</thead>
 						<tbody>
-							{currentItems.map((user) => {
-								const isWoman = user.genero === "mujer";
-
+							{currentItems.map((userItem) => {
+								const isWoman = userItem.genero === "mujer";
 								return (
 									<tr
-										key={user.id}
-										className={!user.activo ? "inactive-row" : ""}
+										key={userItem.id}
+										className={!userItem.activo ? "inactive-row" : ""}
 									>
 										<td>
 											<span
-												className={`status-badge ${user.activo ? "operativo" : "malogrado"}`}
+												className={`status-badge ${userItem.activo ? "operativo" : "malogrado"}`}
 											>
-												{user.activo ? "ACTIVO" : "INACTIVO"}
+												{userItem.activo ? "ACTIVO" : "INACTIVO"}
 											</span>
 										</td>
-
 										<td>
-											<span className='dni-text'>{user.dni}</span>
+											<span className='dni-text'>{userItem.dni}</span>
 										</td>
-
 										<td>
 											<div className='user-avatar-cell'>
 												<div
-													className={`avatar-circle ${!user.activo ? "inactive" : isWoman ? "female" : "male"}`}
+													className={`avatar-circle ${!userItem.activo ? "inactive" : isWoman ? "female" : "male"}`}
 												>
 													{isWoman ? <FaUser /> : <FaUserTie />}
 												</div>
 												<div className='user-info'>
 													<span
-														className={`name ${!user.activo ? "inactive" : ""}`}
+														className={`name ${!userItem.activo ? "inactive" : ""}`}
 													>
-														{user.nombres} {user.apellidos}
+														{userItem.nombres} {userItem.apellidos}
 													</span>
-													{user.creador_nombre && (
+													{userItem.creador_nombre && (
 														<span className='audit-text'>
-															Reg: {user.creador_nombre}
+															Reg: {userItem.creador_nombre}
 														</span>
 													)}
 												</div>
 											</div>
 										</td>
-
 										<td>
 											<div className='email-cell'>
-												<FaEnvelope /> {user.correo}
+												<FaEnvelope /> {userItem.correo}
 											</div>
 										</td>
-
 										<td>
-											{user.telefono && user.activo ? (
+											{userItem.telefono && userItem.activo ? (
 												<a
-													href={`https://wa.me/${user.telefono.replace(/\s+/g, "")}`}
+													href={`https://wa.me/${userItem.telefono.replace(/\s+/g, "")}`}
 													target='_blank'
 													rel='noreferrer'
 													className='whatsapp-btn'
 												>
-													<FaWhatsapp /> {user.telefono}
+													<FaWhatsapp /> {userItem.telefono}
 												</a>
 											) : (
 												<span className='no-contact'>-</span>
 											)}
 										</td>
-
-										{/* MODIFICADO: Uso de clase SCSS */}
 										<td>
 											<span className='empresa-text'>
-												{user.empresa || "-"}
+												{userItem.empresa || "-"}
 											</span>
 										</td>
-
 										<td>
-											{user.cargo ? (
-												<span className='cargo-badge'>{user.cargo}</span>
+											{userItem.cargo ? (
+												<span className='cargo-badge'>{userItem.cargo}</span>
 											) : (
 												<span style={{ color: "#cbd5e1" }}>-</span>
 											)}
 										</td>
-
 										<td>
 											<div className='actions-cell'>
-												{user.activo ? (
+												{userItem.activo ? (
 													<>
 														<button
 															className='action-btn edit'
-															onClick={() => handleEdit(user)}
-															data-tooltip='Editar'
+															onClick={() => handleEdit(userItem)}
+															title='Editar'
 														>
 															<FaEdit />
 														</button>
-														<button
-															className='action-btn delete'
-															onClick={() => confirmDelete(user)}
-															data-tooltip='Dar de baja'
-														>
-															<FaBan />
-														</button>
+
+														{/* RESTRICCIÓN DE ROL: Solo Superadmin (1) ve botón de baja */}
+														{userRole === 1 && (
+															<button
+																className='action-btn delete'
+																onClick={() => confirmDelete(userItem)}
+																title='Dar de baja'
+															>
+																<FaBan />
+															</button>
+														)}
 													</>
 												) : (
-													<button
-														className='action-btn activate'
-														onClick={() => handleActivate(user)}
-														data-tooltip='Reactivar Usuario'
-													>
-														<FaUndo />
-													</button>
+													/* Solo Superadmin puede reactivar */
+													userRole === 1 && (
+														<button
+															className='action-btn activate'
+															onClick={() => handleActivate(userItem)}
+															title='Reactivar Usuario'
+														>
+															<FaUndo />
+														</button>
+													)
 												)}
 											</div>
 										</td>
@@ -318,6 +327,24 @@ const Usuarios = () => {
 							>
 								<FaChevronLeft size={12} />
 							</button>
+
+							{/* PAGINACIÓN NUMÉRICA IGUAL A EQUIPOS */}
+							{[...Array(totalPages)].map((_, i) => {
+								const pageNumber = i + 1;
+								const isActive = currentPage === pageNumber;
+								return (
+									<button
+										key={pageNumber}
+										onClick={() => paginate(pageNumber)}
+										className={isActive ? "active" : ""}
+										disabled={isActive}
+										style={isActive ? { opacity: 1, cursor: "default" } : {}}
+									>
+										{pageNumber}
+									</button>
+								);
+							})}
+
 							<button
 								onClick={() => paginate(currentPage + 1)}
 								disabled={currentPage === totalPages}

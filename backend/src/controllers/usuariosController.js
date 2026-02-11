@@ -1,12 +1,13 @@
 const db = require("../config/db");
 
-// 1. Obtener todos los usuarios (empleados) + Quién los creó
+// 1. Obtener todos los usuarios (empleados) + Quién los creó + Empresa del creador
 const getUsuarios = async (req, res) => {
 	try {
 		const query = `
       SELECT e.*, 
              ua.nombre as creador_nombre, 
-             ua.email as creador_email
+             ua.email as creador_email,
+             ua.empresa as creador_empresa  -- <--- AGREGAMOS ESTA LÍNEA
       FROM empleados e
       LEFT JOIN usuarios_admin ua ON e.creado_por_id = ua.id
       ORDER BY e.nombres ASC
