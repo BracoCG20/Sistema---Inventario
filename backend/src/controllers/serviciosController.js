@@ -161,9 +161,80 @@ const cambiarEstadoServicio = async (req, res) => {
   }
 };
 
+// 5. Obtener el historial de pagos de un servicio
+const getPagosPorServicio = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const query = `
+            SELECT hp.*, 
+                   u.nombre AS creador_nombre, 
+                   u.apellidos AS creador_apellido
+            FROM historial_pagos hp
+            LEFT JOIN usuarios_admin u ON hp.creado_por_id = u.id
+            WHERE hp.servicio_id = $1
+            ORDER BY hp.fecha_pago DESC;
+        `;
+    const response = await db.query(query, [id]);
+    res.status(200).json(response.rows);
+  } catch (error) {
+    console.error('Error al obtener pagos:', error);
+    res.status(500).json({ error: 'Error al cargar el historial de pagos' });
+  }
+};
+
+// 6. Registrar un nuevo pago y subir comprobante
+const registrarPago = async (req, res) => {
+  const { id } = req.params; // ID del servicio
+  const usuarioId = req.user ? req.user.id : null;
+  const {
+    fecha_pago,
+    monto_pagado,
+    moneda,
+    periodo_pagado,
+    nueva_fecha_proximo_pago,
+  } = req.body;
+
+  // Asumimos que usas multer y la ruta del archivo llega en req.file
+  const comprobante_url = req.file ? `/uploads/${req.file.filename}` : null;
+
+  try {
+    // 1. Insertamos el pago en el historial
+    const queryPago = `
+            INSERT INTO historial_pagos (
+                servicio_id, fecha_pago, monto_pagado, moneda, periodo_pagado, comprobante_url, creado_por_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;
+        `;
+    const valuesPago = [
+      id,
+      fecha_pago,
+      monto_pagado,
+      moneda || 'USD',
+      periodo_pagado,
+      comprobante_url,
+      usuarioId,
+    ];
+    await db.query(queryPago, valuesPago);
+
+    // 2. Actualizamos la próxima fecha de cobro en el servicio principal (Si el usuario la envió)
+    if (nueva_fecha_proximo_pago) {
+      await db.query(
+        'UPDATE servicios SET fecha_proximo_pago = $1, updated_at = NOW() WHERE id = $2',
+        [nueva_fecha_proximo_pago, id],
+      );
+    }
+
+    res.status(201).json({ message: 'Pago registrado exitosamente' });
+  } catch (error) {
+    console.error('Error al registrar pago:', error);
+    res.status(500).json({ error: 'Error al registrar el pago' });
+  }
+};
+
 module.exports = {
   getServicios,
   createServicio,
   updateServicio,
   cambiarEstadoServicio,
+  getPagosPorServicio,
+  registrarPago,
 };

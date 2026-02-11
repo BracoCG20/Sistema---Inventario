@@ -20,7 +20,8 @@ import {
   FaMoneyBillWave,
 } from 'react-icons/fa';
 import Modal from '../../components/Modal/Modal';
-import AddServicioForm from './AddServicioForm'; // <-- Lo crearemos después
+import AddServicioForm from './AddServicioForm';
+import PagoServicioModal from './PagoServicioModal'; // <--- Importado
 import './Servicios.scss';
 
 const Servicios = () => {
@@ -28,7 +29,7 @@ const Servicios = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // --- LÓGICA DE ROL (IDÉNTICA A EQUIPOS) ---
+  // --- LÓGICA DE ROL ---
   const [userRole, setUserRole] = useState(null);
 
   // Paginación
@@ -38,6 +39,10 @@ const Servicios = () => {
   // Modales
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+
+  // Modal de Pagos (NUEVO)
+  const [isPagoModalOpen, setIsPagoModalOpen] = useState(false);
+  const [servicioParaPago, setServicioParaPago] = useState(null);
 
   // Selección
   const [servicioToEdit, setServicioToEdit] = useState(null);
@@ -75,7 +80,6 @@ const Servicios = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return <span className='no-date'>-</span>;
-    // Ajuste para evitar desfase de zona horaria si viene solo la fecha
     const date = new Date(
       dateString.includes('T') ? dateString : `${dateString}T12:00:00Z`,
     );
@@ -155,6 +159,11 @@ const Servicios = () => {
   const handleEdit = (servicio) => {
     setServicioToEdit(servicio);
     setIsFormModalOpen(true);
+  };
+
+  const handleOpenPagos = (servicio) => {
+    setServicioParaPago(servicio);
+    setIsPagoModalOpen(true);
   };
 
   const confirmChangeStatus = (servicio, status) => {
@@ -238,7 +247,7 @@ const Servicios = () => {
             <tbody>
               {currentItems.map((item) => {
                 const estadoSeguro = item.estado || 'Activo';
-                const isInactive = item.estado !== 'Activo';
+                const isInactive = estadoSeguro !== 'Activo';
                 return (
                   <tr
                     key={item.id}
@@ -302,13 +311,23 @@ const Servicios = () => {
                     </td>
                     <td>
                       <span
-                        className={`status-badge ${(item.estado || 'Activo').toLowerCase()}`}
+                        className={`status-badge ${estadoSeguro.toLowerCase()}`}
                       >
-                        {(item.estado || 'Activo').toUpperCase()}
+                        {estadoSeguro.toUpperCase()}
                       </span>
                     </td>
                     <td>
                       <div className='actions-cell'>
+                        {/* BOTÓN DE PAGOS */}
+                        <button
+                          className='action-btn'
+                          style={{ color: '#3b82f6' }}
+                          onClick={() => handleOpenPagos(item)}
+                          title='Ver / Registrar Pagos'
+                        >
+                          <FaMoneyBillWave />
+                        </button>
+
                         <button
                           className='action-btn edit'
                           onClick={() => handleEdit(item)}
@@ -317,7 +336,7 @@ const Servicios = () => {
                           <FaEdit />
                         </button>
 
-                        {/* --- RESTRICCIÓN DE ROL PARA BAJA/REACTIVAR --- */}
+                        {/* RESTRICCIÓN DE ROL */}
                         {userRole === 1 &&
                           (item.estado === 'Activo' ? (
                             <button
@@ -391,7 +410,7 @@ const Servicios = () => {
         )}
       </div>
 
-      {/* --- MODAL DEL FORMULARIO --- */}
+      {/* --- MODAL DEL FORMULARIO DE SERVICIO --- */}
       <Modal
         isOpen={isFormModalOpen}
         onClose={() => setIsFormModalOpen(false)}
@@ -400,6 +419,21 @@ const Servicios = () => {
         <AddServicioForm
           onSuccess={handleFormSuccess}
           servicioToEdit={servicioToEdit}
+        />
+      </Modal>
+
+      {/* --- MODAL DE PAGOS (NUEVO) --- */}
+      <Modal
+        isOpen={isPagoModalOpen}
+        onClose={() => {
+          setIsPagoModalOpen(false);
+          fetchData(); // Recargamos la tabla por si cambió la fecha de próximo pago
+        }}
+        title={`Control de Pagos: ${servicioParaPago?.nombre}`}
+      >
+        <PagoServicioModal
+          servicio={servicioParaPago}
+          onClose={() => setIsPagoModalOpen(false)}
         />
       </Modal>
 
