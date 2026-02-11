@@ -1,0 +1,199 @@
+@use '../../styles/variables' as v;
+
+.pago-modal-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-bottom: 1rem; // Un poco de aire al final
+
+  // --- BANNER DE CREDENCIALES ---
+  .credentials-banner {
+    background: #f3f0ff;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #c7d2fe;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    flex-wrap: wrap; // Para móviles
+    gap: 1rem;
+
+    .creds-info {
+      h4 {
+        margin: 0;
+        color: #4338ca;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .user-detail {
+        margin-top: 6px;
+        font-size: 0.9rem;
+        color: #475569;
+        strong {
+          font-weight: 600;
+          color: #334155;
+        }
+      }
+    }
+
+    .btn-portal {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      transition: background 0.2s;
+
+      &:hover {
+        background: #4338ca;
+      }
+    }
+  }
+
+  // --- TARJETAS GENERALES ---
+  .modal-card {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+    overflow: visible; // CAMBIO IMPORTANTE: Permitir que los dropdowns salgan
+
+    &.padding-content {
+      padding: 1.5rem;
+    }
+
+    .section-title {
+      margin: 0 0 1.5rem 0;
+      color: #1e293b;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      svg {
+        color: v.$primary;
+      }
+    }
+  }
+
+  // --- TABLA DE HISTORIAL ---
+  .history-container {
+    .history-header {
+      margin: 0 0 1rem 0;
+      color: #1e293b;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      svg {
+        color: v.$primary;
+      }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 2.5rem;
+      background: #f8fafc;
+      border-radius: 12px;
+      border: 1px dashed #cbd5e1;
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    .table-scroll {
+      // AQUÍ ESTABA EL PROBLEMA:
+      // Quitamos max-height y overflow-y para que no cree un segundo scroll.
+      // La tabla crecerá y usará el scroll del modal principal.
+      width: 100%;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: white;
+      overflow: hidden; // Solo para redondear bordes
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+
+        thead {
+          background: #eef2ff;
+
+          th {
+            padding: 12px 16px;
+            text-align: left;
+            color: #4338ca;
+            font-weight: 700;
+            border-bottom: 1px solid #e0e7ff;
+            &.center {
+              text-align: center;
+            }
+          }
+        }
+
+        tbody tr {
+          border-bottom: 1px solid #f1f5f9;
+          &:last-child {
+            border-bottom: none;
+          }
+          &:hover {
+            background-color: #f8fafc;
+          }
+
+          td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            color: #334155;
+
+            &.date {
+              font-weight: 600;
+              color: #334155;
+            }
+            &.period {
+              color: #64748b;
+            }
+            &.amount {
+              color: #059669;
+              font-weight: 700;
+              font-family: monospace;
+              font-size: 0.9rem;
+            }
+            &.center {
+              text-align: center;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // --- BOTÓN VER PDF ---
+  .btn-ver-pdf {
+    background: #fee2e2;
+    color: #ef4444;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #fecaca;
+      color: #dc2626;
+    }
+  }
+}

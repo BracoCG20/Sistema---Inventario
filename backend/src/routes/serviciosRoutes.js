@@ -3,13 +3,13 @@ const router = Router();
 const multer = require('multer');
 const path = require('path');
 
-// 1. Importamos TU middleware de autenticación real
+// 1. Importamos TU middleware de autenticación
 const verifyToken = require('../middlewares/authMiddleware');
 
-// 2. Configuración de Multer (Igual que tus PDFs firmados, pero con prefijo 'comprobante-')
+// 2. Configuración de Multer
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/'); // Apuntamos a la carpeta raíz de uploads
+    cb(null, 'uploads/'); // Carpeta raíz uploads
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
@@ -26,28 +26,25 @@ const {
   cambiarEstadoServicio,
   getPagosPorServicio,
   registrarPago,
+  sincronizarFacturaExterna, // <--- Asegúrate de que esto esté importado
 } = require('../controllers/serviciosController');
 
-// --- RUTAS DE SERVICIOS (Protegidas con verifyToken) ---
+// --- RUTAS DE SERVICIOS ---
 
-// Obtener todos los servicios
 router.get('/', verifyToken, getServicios);
-
-// Crear un nuevo servicio
 router.post('/', verifyToken, createServicio);
-
-// Actualizar un servicio existente
 router.put('/:id', verifyToken, updateServicio);
-
-// Cambiar estado (Baja o Reactivación)
 router.put('/:id/estado', verifyToken, cambiarEstadoServicio);
 
-// --- RUTAS DE HISTORIAL DE PAGOS (Protegidas con verifyToken) ---
+// --- RUTAS DE HISTORIAL DE PAGOS ---
 
-// Obtener historial de pagos de un servicio
+// Obtener historial
 router.get('/:id/pagos', verifyToken, getPagosPorServicio);
 
-// Registrar un nuevo pago (soporta subida de PDF/Imagen en el campo 'comprobante')
+// Sincronizar factura (API externa)
+router.post('/:id/sync-invoice', verifyToken, sincronizarFacturaExterna);
+
+// Registrar pago manual (con subida de archivo)
 router.post(
   '/:id/pagos',
   verifyToken,

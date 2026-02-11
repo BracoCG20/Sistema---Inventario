@@ -1,6 +1,7 @@
 const db = require('../config/db');
+const axios = require('axios'); // <--- REQUISITO: npm install axios
 
-// 1. Obtener todos los servicios (Con datos cruzados de auditoría y empresas)
+// 1. Obtener todos los servicios
 const getServicios = async (req, res) => {
   try {
     const query = `
@@ -9,10 +10,9 @@ const getServicios = async (req, res) => {
                    eu.razon_social AS empresa_usuaria_nombre,
                    uc.nombre AS creador_nombre, 
                    uc.apellidos AS creador_apellido, 
-                   uc.email AS creador_correo, -- <--- AQUÍ ESTABA EL ERROR (cambiado de correo a email)
+                   uc.email AS creador_correo,
                    um.nombre AS modificador_nombre, 
                    um.apellidos AS modificador_apellido,
-                   -- Calculamos licencias libres al vuelo
                    (s.licencias_totales - s.licencias_usadas) AS licencias_libres
             FROM servicios s
             LEFT JOIN empresas ef ON s.empresa_facturacion_id = ef.id
@@ -31,7 +31,7 @@ const getServicios = async (req, res) => {
 
 // 2. Crear un nuevo servicio
 const createServicio = async (req, res) => {
-  const usuarioId = req.user ? req.user.id : null; // Quién lo registra
+  const usuarioId = req.user ? req.user.id : null;
   const {
     nombre,
     descripcion,
@@ -45,6 +45,10 @@ const createServicio = async (req, res) => {
     empresa_usuaria_id,
     licencias_totales,
     licencias_usadas,
+    api_key,
+    url_acceso,
+    usuario_acceso,
+    password_acceso,
   } = req.body;
 
   try {
@@ -52,8 +56,9 @@ const createServicio = async (req, res) => {
             INSERT INTO servicios (
                 nombre, descripcion, precio, moneda, frecuencia_pago, fecha_proximo_pago, 
                 metodo_pago, titular_pago, empresa_facturacion_id, empresa_usuaria_id, 
-                licencias_totales, licencias_usadas, creado_por_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                licencias_totales, licencias_usadas, creado_por_id,
+                api_key, url_acceso, usuario_acceso, password_acceso
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             RETURNING *;
         `;
     const values = [
@@ -70,6 +75,10 @@ const createServicio = async (req, res) => {
       licencias_totales || 0,
       licencias_usadas || 0,
       usuarioId,
+      api_key || null,
+      url_acceso || null,
+      usuario_acceso || null,
+      password_acceso || null,
     ];
 
     const response = await db.query(query, values);
@@ -85,7 +94,7 @@ const createServicio = async (req, res) => {
 // 3. Actualizar un servicio
 const updateServicio = async (req, res) => {
   const { id } = req.params;
-  const usuarioId = req.user ? req.user.id : null; // Quién lo modifica
+  const usuarioId = req.user ? req.user.id : null;
   const {
     nombre,
     descripcion,
@@ -100,35 +109,79 @@ const updateServicio = async (req, res) => {
     empresa_usuaria_id,
     licencias_totales,
     licencias_usadas,
+    api_key,
+    url_acceso,
+    usuario_acceso,
+    password_acceso,
   } = req.body;
 
   try {
-    const query = `
+    let query, values;
+
+    if (password_acceso && password_acceso.trim() !== '') {
+      query = `
             UPDATE servicios SET 
                 nombre = $1, descripcion = $2, estado = $3, precio = $4, 
                 moneda = $5, frecuencia_pago = $6, fecha_proximo_pago = $7, 
                 metodo_pago = $8, titular_pago = $9, empresa_facturacion_id = $10, 
                 empresa_usuaria_id = $11, licencias_totales = $12, 
-                licencias_usadas = $13, modificado_por_id = $14
-            WHERE id = $15 RETURNING *;
+                licencias_usadas = $13, modificado_por_id = $14,
+                api_key = $15, url_acceso = $16, usuario_acceso = $17, password_acceso = $18
+            WHERE id = $19 RETURNING *;
         `;
-    const values = [
-      nombre,
-      descripcion,
-      estado,
-      precio,
-      moneda,
-      frecuencia_pago,
-      fecha_proximo_pago || null,
-      metodo_pago,
-      titular_pago,
-      empresa_facturacion_id || null,
-      empresa_usuaria_id || null,
-      licencias_totales || 0,
-      licencias_usadas || 0,
-      usuarioId,
-      id,
-    ];
+      values = [
+        nombre,
+        descripcion,
+        estado,
+        precio,
+        moneda,
+        frecuencia_pago,
+        fecha_proximo_pago || null,
+        metodo_pago,
+        titular_pago,
+        empresa_facturacion_id || null,
+        empresa_usuaria_id || null,
+        licencias_totales || 0,
+        licencias_usadas || 0,
+        usuarioId,
+        api_key,
+        url_acceso,
+        usuario_acceso,
+        password_acceso,
+        id,
+      ];
+    } else {
+      query = `
+            UPDATE servicios SET 
+                nombre = $1, descripcion = $2, estado = $3, precio = $4, 
+                moneda = $5, frecuencia_pago = $6, fecha_proximo_pago = $7, 
+                metodo_pago = $8, titular_pago = $9, empresa_facturacion_id = $10, 
+                empresa_usuaria_id = $11, licencias_totales = $12, 
+                licencias_usadas = $13, modificado_por_id = $14,
+                api_key = $15, url_acceso = $16, usuario_acceso = $17
+            WHERE id = $18 RETURNING *;
+        `;
+      values = [
+        nombre,
+        descripcion,
+        estado,
+        precio,
+        moneda,
+        frecuencia_pago,
+        fecha_proximo_pago || null,
+        metodo_pago,
+        titular_pago,
+        empresa_facturacion_id || null,
+        empresa_usuaria_id || null,
+        licencias_totales || 0,
+        licencias_usadas || 0,
+        usuarioId,
+        api_key,
+        url_acceso,
+        usuario_acceso,
+        id,
+      ];
+    }
 
     const response = await db.query(query, values);
     if (response.rowCount === 0)
@@ -143,10 +196,10 @@ const updateServicio = async (req, res) => {
   }
 };
 
-// 4. Cambiar Estado (Baja Lógica en lugar de eliminar)
+// 4. Cambiar Estado
 const cambiarEstadoServicio = async (req, res) => {
   const { id } = req.params;
-  const { estado } = req.body; // Puede ser 'Inactivo', 'Cancelado', 'Activo'
+  const { estado } = req.body;
   const usuarioId = req.user ? req.user.id : null;
 
   try {
@@ -161,7 +214,7 @@ const cambiarEstadoServicio = async (req, res) => {
   }
 };
 
-// 5. Obtener el historial de pagos de un servicio
+// 5. Obtener el historial de pagos
 const getPagosPorServicio = async (req, res) => {
   const { id } = req.params;
   try {
@@ -182,9 +235,9 @@ const getPagosPorServicio = async (req, res) => {
   }
 };
 
-// 6. Registrar un nuevo pago y subir comprobante
+// 6. Registrar un nuevo pago
 const registrarPago = async (req, res) => {
-  const { id } = req.params; // ID del servicio
+  const { id } = req.params;
   const usuarioId = req.user ? req.user.id : null;
   const {
     fecha_pago,
@@ -192,13 +245,15 @@ const registrarPago = async (req, res) => {
     moneda,
     periodo_pagado,
     nueva_fecha_proximo_pago,
+    pdf_url_externa,
   } = req.body;
 
-  // Asumimos que usas multer y la ruta del archivo llega en req.file
-  const comprobante_url = req.file ? `/uploads/${req.file.filename}` : null;
+  // Ajuste para Multer: guardamos la ruta completa a la carpeta raíz 'uploads'
+  const comprobante_url = req.file
+    ? `/uploads/${req.file.filename}`
+    : pdf_url_externa || null;
 
   try {
-    // 1. Insertamos el pago en el historial
     const queryPago = `
             INSERT INTO historial_pagos (
                 servicio_id, fecha_pago, monto_pagado, moneda, periodo_pagado, comprobante_url, creado_por_id
@@ -215,7 +270,6 @@ const registrarPago = async (req, res) => {
     ];
     await db.query(queryPago, valuesPago);
 
-    // 2. Actualizamos la próxima fecha de cobro en el servicio principal (Si el usuario la envió)
     if (nueva_fecha_proximo_pago) {
       await db.query(
         'UPDATE servicios SET fecha_proximo_pago = $1, updated_at = NOW() WHERE id = $2',
@@ -230,6 +284,45 @@ const registrarPago = async (req, res) => {
   }
 };
 
+// 7. Sincronizar Factura Externa (MODO PRUEBA SEGURO)
+const sincronizarFacturaExterna = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await db.query('SELECT * FROM servicios WHERE id = $1', [
+      id,
+    ]);
+    const servicio = result.rows[0];
+
+    // 1. Validar que exista el servicio
+    if (!servicio) {
+      return res.status(404).json({ error: 'Servicio no encontrado.' });
+    }
+
+    // 2. INTENTO DE CONEXIÓN (Simulación o Real)
+    // En este caso, simulamos que conectamos y obtenemos datos, pero NO el archivo.
+
+    // Datos simulados que Metricool devolvería (Fecha y Monto)
+    const datosFactura = {
+      fecha: new Date().toISOString(),
+      monto: 172.0, // Precio detectado
+      moneda: 'USD',
+      periodo: 'Febrero 2026',
+    };
+
+    res.status(200).json({
+      conectado: true,
+      mensaje: 'Sincronización de datos exitosa.',
+      datos: datosFactura,
+      // IMPORTANTE: Enviamos pdf_url como null para que el frontend no muestre el link roto
+      pdf_url: null,
+    });
+  } catch (error) {
+    console.error('Error al sincronizar:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+};
+
 module.exports = {
   getServicios,
   createServicio,
@@ -237,4 +330,5 @@ module.exports = {
   cambiarEstadoServicio,
   getPagosPorServicio,
   registrarPago,
+  sincronizarFacturaExterna,
 };

@@ -2,12 +2,24 @@ import React, { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
 import Select from 'react-select';
-import { FaFilePdf, FaSave, FaCalendarCheck, FaHistory } from 'react-icons/fa';
-import './AddServicioForm.scss'; // Reutilizamos los estilos del formulario general
+import {
+  FaFilePdf,
+  FaSave,
+  FaCalendarCheck,
+  FaHistory,
+  FaKey,
+  FaExternalLinkAlt,
+  FaSync,
+  FaCheckCircle,
+} from 'react-icons/fa';
+
+import './AddServicioForm.scss';
+import './PagoServicioModal.scss';
 
 const PagoServicioModal = ({ servicio, onClose }) => {
   const [pagos, setPagos] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
@@ -17,6 +29,8 @@ const PagoServicioModal = ({ servicio, onClose }) => {
     periodo_pagado: '',
     nueva_fecha_proximo_pago: '',
   });
+
+  const [pdfDetectado, setPdfDetectado] = useState(null);
   const [archivo, setArchivo] = useState(null);
 
   const monedaOptions = [
@@ -30,7 +44,7 @@ const PagoServicioModal = ({ servicio, onClose }) => {
       const res = await api.get(`/servicios/${servicio.id}/pagos`);
       setPagos(res.data);
     } catch (error) {
-      toast.error('Error al cargar el historial de pagos');
+      toast.error('Error al cargar historial');
     }
   };
 
@@ -45,6 +59,51 @@ const PagoServicioModal = ({ servicio, onClose }) => {
       }));
     }
   }, [servicio]);
+
+  // --- FUNCIÓN SINCRONIZAR ACTUALIZADA ---
+  const handleSyncInvoice = async () => {
+    setSyncing(true);
+    setPdfDetectado(null);
+
+    try {
+      const res = await api.post(`/servicios/${servicio.id}/sync-invoice`);
+      const data = res.data;
+
+      if (data.conectado) {
+        toast.success('¡Datos sincronizados correctamente!');
+
+        // 1. Rellenar formulario con datos recibidos (si existen)
+        if (data.datos) {
+          setFormData((prev) => ({
+            ...prev,
+            fecha_pago: data.datos.fecha
+              ? data.datos.fecha.split('T')[0]
+              : prev.fecha_pago,
+            monto_pagado: data.datos.monto || prev.monto_pagado,
+            moneda: data.datos.moneda || prev.moneda,
+            periodo_pagado: data.datos.periodo || prev.periodo_pagado,
+          }));
+        }
+
+        // 2. Manejo del PDF
+        if (data.pdf_url) {
+          setPdfDetectado(data.pdf_url);
+          toast.info('Factura PDF encontrada.');
+        } else {
+          // Si NO hay PDF (caso Metricool), avisamos al usuario
+          toast.info(
+            "Metricool no entrega el PDF vía API. Usa 'Ir al Portal' para descargarlo.",
+            { autoClose: 5000 },
+          );
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Error al sincronizar o credenciales inválidas.');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -68,11 +127,16 @@ const PagoServicioModal = ({ servicio, onClose }) => {
     }
 
     setLoading(true);
-    const toastId = toast.loading('Registrando pago y subiendo comprobante...');
+    const toastId = toast.loading('Registrando pago...');
 
     const form = new FormData();
     Object.keys(formData).forEach((key) => form.append(key, formData[key]));
-    if (archivo) form.append('comprobante', archivo);
+
+    if (archivo) {
+      form.append('comprobante', archivo);
+    } else if (pdfDetectado) {
+      form.append('pdf_url_externa', pdfDetectado);
+    }
 
     try {
       await api.post(`/servicios/${servicio.id}/pagos`, form, {
@@ -86,12 +150,13 @@ const PagoServicioModal = ({ servicio, onClose }) => {
       });
 
       setArchivo(null);
+      setPdfDetectado(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       setFormData((prev) => ({ ...prev, periodo_pagado: '' }));
       fetchPagos();
     } catch (error) {
       toast.update(toastId, {
-        render: 'Error al registrar pago ❌',
+        render: 'Error al registrar ❌',
         type: 'error',
         isLoading: false,
         autoClose: 3000,
@@ -102,7 +167,8 @@ const PagoServicioModal = ({ servicio, onClose }) => {
   };
 
   const verComprobante = (url) => {
-    window.open(`http://localhost:4000${url}`, '_blank');
+    const link = url.startsWith('http') ? url : `http://localhost:4000${url}`;
+    window.open(link, '_blank');
   };
 
   const formatDate = (dateString) => {
@@ -117,7 +183,6 @@ const PagoServicioModal = ({ servicio, onClose }) => {
     });
   };
 
-  // Estilos de React Select para que coincida con tus inputs
   const customSelectStyles = {
     control: (provided, state) => ({
       ...provided,
@@ -126,50 +191,54 @@ const PagoServicioModal = ({ servicio, onClose }) => {
       borderRadius: '8px',
       minHeight: '42px',
       boxShadow: state.isFocused ? '0 0 0 1px #7c3aed' : 'none',
-      cursor: state.isDisabled ? 'not-allowed' : 'default',
       '&:hover': { borderColor: state.isDisabled ? '#cbd5e1' : '#7c3aed' },
     }),
-    option: (provided, state) => ({
-      ...provided,
-      backgroundColor: state.isSelected
-        ? '#7c3aed'
-        : state.isFocused
-          ? '#f3f0ff'
-          : 'white',
-      color: state.isSelected ? 'white' : '#334155',
-      cursor: 'pointer',
-    }),
-    singleValue: (provided, state) => ({
-      ...provided,
-      color: state.isDisabled ? '#94a3b8' : '#334155',
-    }),
+    singleValue: (provided) => ({ ...provided, color: '#334155' }),
   };
 
   if (!servicio) return null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      {/* --- FORMULARIO DE REGISTRO --- */}
-      <div
-        style={{
-          background: '#ffffff',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.02)',
-        }}
-      >
-        <h4
-          style={{
-            margin: '0 0 1.5rem 0',
-            color: '#1e293b',
-            fontSize: '1.1rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <FaCalendarCheck color='#4f46e5' /> Registrar Nuevo Pago
+    <div className='pago-modal-container'>
+      {/* --- BANNER DE ACCESO --- */}
+      {servicio.usuario_acceso && (
+        <div className='credentials-banner'>
+          <div className='creds-info'>
+            <h4>
+              <FaKey /> Credenciales de Acceso
+            </h4>
+            <div className='user-detail'>
+              <strong>Usuario:</strong> {servicio.usuario_acceso}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            {servicio.api_key && (
+              <button
+                onClick={handleSyncInvoice}
+                disabled={syncing}
+                className='btn-portal'
+                style={{ background: '#0ea5e9' }}
+                title='Sincronizar datos de facturación'
+              >
+                {syncing ? <FaSync className='fa-spin' /> : <FaSync />}
+                {syncing ? ' Buscando...' : ' Sincronizar Datos'}
+              </button>
+            )}
+
+            <button
+              onClick={() => window.open(servicio.url_acceso, '_blank')}
+              className='btn-portal'
+            >
+              Ir al Portal <FaExternalLinkAlt size={12} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* --- FORMULARIO --- */}
+      <div className='modal-card padding-content'>
+        <h4 className='section-title'>
+          <FaCalendarCheck /> Registrar Nuevo Pago
         </h4>
 
         <form
@@ -177,6 +246,39 @@ const PagoServicioModal = ({ servicio, onClose }) => {
           onSubmit={handleSubmit}
           style={{ padding: 0, maxHeight: 'none', overflow: 'visible' }}
         >
+          {/* AVISO DE PDF DETECTADO (Solo si existe url real) */}
+          {pdfDetectado && (
+            <div
+              style={{
+                background: '#ecfdf5',
+                border: '1px solid #10b981',
+                color: '#047857',
+                padding: '10px',
+                borderRadius: '8px',
+                marginBottom: '15px',
+                fontSize: '0.9rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <FaCheckCircle /> PDF detectado.
+              <a
+                href={pdfDetectado}
+                target='_blank'
+                rel='noreferrer'
+                style={{
+                  textDecoration: 'underline',
+                  color: '#047857',
+                  marginLeft: 'auto',
+                  fontWeight: 'bold',
+                }}
+              >
+                Ver PDF
+              </a>
+            </div>
+          )}
+
           <div className='form-row'>
             <div className='input-group'>
               <label>Fecha de Pago</label>
@@ -189,7 +291,6 @@ const PagoServicioModal = ({ servicio, onClose }) => {
                 required
               />
             </div>
-
             <div className='input-group'>
               <label>Monto Pagado</label>
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -236,7 +337,6 @@ const PagoServicioModal = ({ servicio, onClose }) => {
                 name='nueva_fecha_proximo_pago'
                 value={formData.nueva_fecha_proximo_pago}
                 onChange={handleChange}
-                title='Actualizará la fecha en la tabla principal'
               />
             </div>
           </div>
@@ -248,6 +348,7 @@ const PagoServicioModal = ({ servicio, onClose }) => {
               accept='.pdf,image/*'
               ref={fileInputRef}
               onChange={handleFileChange}
+              disabled={!!pdfDetectado}
               style={{
                 padding: '8px',
                 background: '#f8fafc',
@@ -255,6 +356,11 @@ const PagoServicioModal = ({ servicio, onClose }) => {
                 cursor: 'pointer',
               }}
             />
+            {pdfDetectado && (
+              <small style={{ color: '#059669' }}>
+                * Se usará el PDF importado automáticamente.
+              </small>
+            )}
           </div>
 
           <button
@@ -268,145 +374,40 @@ const PagoServicioModal = ({ servicio, onClose }) => {
         </form>
       </div>
 
-      {/* --- TABLA DE HISTORIAL --- */}
-      <div>
-        <h4
-          style={{
-            margin: '0 0 1rem 0',
-            color: '#1e293b',
-            fontSize: '1.1rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <FaHistory color='#4f46e5' /> Historial de Pagos Anteriores
+      {/* --- HISTORIAL --- */}
+      <div className='history-container'>
+        <h4 className='history-header'>
+          <FaHistory /> Historial de Pagos
         </h4>
 
         {pagos.length === 0 ? (
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '2.5rem',
-              background: '#f8fafc',
-              borderRadius: '12px',
-              border: '1px dashed #cbd5e1',
-              color: '#64748b',
-            }}
-          >
+          <div className='empty-state'>
             Aún no hay pagos registrados para este servicio.
           </div>
         ) : (
-          <div
-            style={{
-              maxHeight: '250px',
-              overflowY: 'auto',
-              border: '1px solid #e2e8f0',
-              borderRadius: '12px',
-              background: 'white',
-            }}
-          >
-            <table
-              style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                fontSize: '0.85rem',
-              }}
-            >
-              <thead
-                style={{
-                  background: '#eef2ff',
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 1,
-                }}
-              >
+          <div className='table-scroll'>
+            <table>
+              <thead>
                 <tr>
-                  <th
-                    style={{
-                      padding: '12px',
-                      textAlign: 'left',
-                      color: '#4338ca',
-                      fontWeight: '700',
-                    }}
-                  >
-                    Fecha
-                  </th>
-                  <th
-                    style={{
-                      padding: '12px',
-                      textAlign: 'left',
-                      color: '#4338ca',
-                      fontWeight: '700',
-                    }}
-                  >
-                    Período
-                  </th>
-                  <th
-                    style={{
-                      padding: '12px',
-                      textAlign: 'left',
-                      color: '#4338ca',
-                      fontWeight: '700',
-                    }}
-                  >
-                    Monto
-                  </th>
-                  <th
-                    style={{
-                      padding: '12px',
-                      textAlign: 'center',
-                      color: '#4338ca',
-                      fontWeight: '700',
-                    }}
-                  >
-                    Voucher
-                  </th>
+                  <th>Fecha</th>
+                  <th>Período</th>
+                  <th>Monto</th>
+                  <th className='center'>Voucher</th>
                 </tr>
               </thead>
               <tbody>
                 {pagos.map((pago) => (
-                  <tr
-                    key={pago.id}
-                    style={{ borderBottom: '1px solid #f1f5f9' }}
-                  >
-                    <td
-                      style={{
-                        padding: '12px',
-                        color: '#334155',
-                        fontWeight: '600',
-                      }}
-                    >
-                      {formatDate(pago.fecha_pago)}
-                    </td>
-                    <td style={{ padding: '12px', color: '#64748b' }}>
-                      {pago.periodo_pagado}
-                    </td>
-                    <td
-                      style={{
-                        padding: '12px',
-                        color: '#059669',
-                        fontWeight: '600',
-                      }}
-                    >
+                  <tr key={pago.id}>
+                    <td className='date'>{formatDate(pago.fecha_pago)}</td>
+                    <td className='period'>{pago.periodo_pagado}</td>
+                    <td className='amount'>
                       {pago.moneda} {Number(pago.monto_pagado).toFixed(2)}
                     </td>
-                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                    <td className='center'>
                       {pago.comprobante_url ? (
                         <button
                           onClick={() => verComprobante(pago.comprobante_url)}
-                          style={{
-                            background: '#fee2e2',
-                            color: '#ef4444',
-                            border: 'none',
-                            padding: '6px 12px',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            fontWeight: '600',
-                          }}
+                          className='btn-ver-pdf'
                         >
                           <FaFilePdf /> Ver
                         </button>
