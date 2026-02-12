@@ -1,11 +1,19 @@
 const db = require('../config/db');
-
-// 1. Obtener todos los proveedores (Activos e Inactivos)
-// MODIFICADO: Ordenamos primero los activos, luego por nombre
+// 1. Obtener proveedores con conteo de equipos y auditoría
 const getProveedores = async (req, res) => {
   try {
-    const query =
-      'SELECT * FROM proveedores ORDER BY activo DESC, razon_social ASC';
+    const query = `
+      SELECT 
+        p.*, 
+        u1.nombre as creador_nombre, 
+        u2.nombre as modificador_nombre,
+        -- Subconsulta para contar equipos alquilados
+        (SELECT COUNT(*) FROM equipos e WHERE e.proveedor_id = p.id) as total_equipos
+      FROM proveedores p
+      LEFT JOIN usuarios_admin u1 ON p.created_by_id = u1.id
+      LEFT JOIN usuarios_admin u2 ON p.updated_by_id = u2.id
+      ORDER BY p.activo DESC, p.razon_social ASC
+    `;
     const response = await db.query(query);
     res.status(200).json(response.rows);
   } catch (error) {
@@ -13,7 +21,6 @@ const getProveedores = async (req, res) => {
     res.status(500).json({ error: 'Error al cargar proveedores' });
   }
 };
-
 // 2. Crear un nuevo proveedor
 const createProveedor = async (req, res) => {
   const usuarioId = req.user ? req.user.id : null;

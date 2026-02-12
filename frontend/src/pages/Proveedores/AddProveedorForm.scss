@@ -24,6 +24,9 @@
       font-size: 0.85rem;
       font-weight: 600;
       color: v.$text-muted;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     input,

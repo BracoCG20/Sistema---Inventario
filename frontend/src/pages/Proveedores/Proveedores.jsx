@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
+import * as XLSX from 'xlsx'; // Importamos la librería para Excel
 import { toast } from 'react-toastify';
 import {
   FaPlus,
@@ -12,6 +13,12 @@ import {
   FaUndo,
   FaEnvelope,
   FaMapMarkerAlt,
+  FaExclamationTriangle,
+  FaTimes,
+  FaCheck,
+  FaFileExcel,
+  FaBan,
+  FaLaptop, // Nuevo icono
 } from 'react-icons/fa';
 import Modal from '../../components/Modal/Modal';
 import AddProveedorForm from './AddProveedorForm';
@@ -21,14 +28,19 @@ const Proveedores = () => {
   const [proveedores, setProveedores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Modales
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  // Selección
   const [providerToEdit, setProviderToEdit] = useState(null);
+  const [providerToAction, setProviderToAction] = useState(null);
 
   const fetchProveedores = async () => {
     setLoading(true);
     try {
       const res = await api.get('/proveedores');
-      // Ordenar: Activos primero, luego por nombre
       const sorted = res.data.sort((a, b) => {
         if (a.activo === b.activo)
           return a.razon_social.localeCompare(b.razon_social);
@@ -46,12 +58,51 @@ const Proveedores = () => {
     fetchProveedores();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('¿Dar de baja a este proveedor? Pasará a inactivo.'))
-      return;
+  // --- FUNCIÓN EXPORTAR EXCEL ACTUALIZADA ---
+  const exportarExcel = () => {
+    if (proveedores.length === 0) {
+      return toast.info('No hay datos para exportar');
+    }
+
+    const dataParaExcel = filtered.map((p) => ({
+      Estado: p.activo ? 'ACTIVO' : 'INACTIVO',
+      'Razón Social': p.razon_social,
+      RUC: p.ruc,
+      'Equipos Alquilados': p.total_equipos || 0, // Nuevo campo en Excel
+      'Nombre de Contacto': p.nombre_contacto || '-',
+      'Nombre de Contacto': p.nombre_contacto || '-',
+      Teléfono: p.telefono || '-',
+      Email: p.email || '-',
+      Dirección: p.direccion || '-',
+
+      // --- COLUMNAS DE AUDITORÍA AGREGADAS ---
+      'Registrado Por': p.creador_nombre || 'Sistema',
+      'Fecha Registro': p.created_at
+        ? new Date(p.created_at).toLocaleString()
+        : '-',
+      'Modificado Por': p.modificador_nombre || '-',
+      'Última Modificación': p.updated_at
+        ? new Date(p.updated_at).toLocaleString()
+        : '-',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataParaExcel);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Proveedores');
+    XLSX.writeFile(wb, 'Reporte_Proveedores_Completo.xlsx');
+    toast.success('Excel con auditoría generado');
+  };
+
+  const confirmDeactivate = (prov) => {
+    setProviderToAction(prov);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeactivate = async () => {
     try {
-      await api.delete(`/proveedores/${id}`);
+      await api.delete(`/proveedores/${providerToAction.id}`);
       toast.success('Proveedor desactivado');
+      setIsDeleteModalOpen(false);
       fetchProveedores();
     } catch (error) {
       toast.error('Error al desactivar');
@@ -59,7 +110,6 @@ const Proveedores = () => {
   };
 
   const handleActivate = async (id) => {
-    if (!window.confirm('¿Reactivar este proveedor?')) return;
     try {
       await api.put(`/proveedores/${id}/activate`);
       toast.success('Proveedor reactivado ✅');
@@ -99,6 +149,13 @@ const Proveedores = () => {
           <FaTruck style={{ marginRight: '10px' }} /> Gestión de Proveedores
         </h1>
         <div className='header-actions'>
+          {/* BOTÓN DE EXCEL AGREGADO */}
+          <button
+            className='btn-action-header btn-excel'
+            onClick={exportarExcel}
+          >
+            <FaFileExcel /> Exportar Excel
+          </button>
           <button
             className='btn-action-header btn-add'
             onClick={handleAdd}
@@ -128,7 +185,9 @@ const Proveedores = () => {
                 <th>Empresa / Razón Social</th>
                 <th>RUC</th>
                 <th>Contacto</th>
-                <th>Teléfono / Email</th>
+                <th>Teléfono</th>
+                <th>Correo Electrónico</th>
+                <th className='center'>Equipos</th>
                 <th className='center'>Acciones</th>
               </tr>
             </thead>
@@ -174,24 +233,42 @@ const Proveedores = () => {
                     </span>
                   </td>
                   <td>
+                    {prov.telefono ? (
+                      <div className='email-cell'>
+                        <FaPhone size={12} /> {prov.telefono}
+                      </div>
+                    ) : (
+                      '-'
+                    )}
+                  </td>
+                  <td>
+                    {prov.email ? (
+                      <div className='email-cell'>
+                        <FaEnvelope size={12} /> {prov.email}
+                      </div>
+                    ) : (
+                      '-'
+                    )}
+                  </td>
+                  <td className='center'>
                     <div
-                      className='contact-info'
                       style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '4px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '4px 12px',
+                        backgroundColor: '#f3f4f6',
+                        borderRadius: '20px',
+                        fontWeight: '700',
+                        color: '#374151',
+                        fontSize: '0.85rem',
                       }}
                     >
-                      {prov.telefono && (
-                        <div className='email-cell'>
-                          <FaPhone size={12} /> {prov.telefono}
-                        </div>
-                      )}
-                      {prov.email && (
-                        <div className='email-cell'>
-                          <FaEnvelope size={12} /> {prov.email}
-                        </div>
-                      )}
+                      <FaLaptop
+                        size={12}
+                        color='#6b7280'
+                      />
+                      {prov.total_equipos || 0}
                     </div>
                   </td>
                   <td>
@@ -207,10 +284,10 @@ const Proveedores = () => {
                           </button>
                           <button
                             className='action-btn delete'
-                            onClick={() => handleDelete(prov.id)}
+                            onClick={() => confirmDeactivate(prov)}
                             title='Dar de baja'
                           >
-                            <FaTrash />
+                            <FaBan />
                           </button>
                         </>
                       ) : (
@@ -240,6 +317,39 @@ const Proveedores = () => {
           onSuccess={handleFormSuccess}
           providerToEdit={providerToEdit}
         />
+      </Modal>
+
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title='Confirmar Acción'
+      >
+        <div className='confirm-modal-content'>
+          <div className='warning-icon'>
+            <FaExclamationTriangle />
+          </div>
+          <h3>¿Desactivar Proveedor?</h3>
+          <p>
+            Estás a punto de dar de baja a{' '}
+            <strong>{providerToAction?.razon_social}</strong>.
+            <br />
+            Ya no aparecerá en la selección de nuevos equipos.
+          </p>
+          <div className='modal-actions'>
+            <button
+              className='btn-cancel'
+              onClick={() => setIsDeleteModalOpen(false)}
+            >
+              <FaTimes /> Cancelar
+            </button>
+            <button
+              className='btn-confirm'
+              onClick={handleDeactivate}
+            >
+              <FaCheck /> Confirmar Baja
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
