@@ -8,6 +8,9 @@ import DevolucionForm from '../../components/Devolucion/DevolucionForm';
 import DevolucionTable from '../../components/Devolucion/DevolucionTable';
 import { generarPDFDevolucion } from '../../utils/pdfGeneratorDevolucion';
 
+import { FaExclamationTriangle, FaTimes, FaCheck } from 'react-icons/fa'; // Asegúrate de tener estos iconos
+import Modal from '../../components/Modal/Modal';
+
 // Importamos estilos específicos
 import '../Equipos/FormStyles.scss'; // Estilos compartidos de formularios (inputs, selects)
 import './Devolucion.scss'; // <--- NUEVO SCSS PROPIO
@@ -38,6 +41,9 @@ const Devolucion = () => {
     observaciones: '',
     estado_final: 'operativo',
   });
+
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false); // Nuevo estado
+  const [movimientoToInvalidar, setMovimientoToInvalidar] = useState(null);
 
   // --- CARGA DE DATOS ---
   const fetchData = async () => {
@@ -147,11 +153,16 @@ const Devolucion = () => {
     e.target.value = null;
   };
 
-  const handleInvalidar = async (id) => {
-    if (!window.confirm('¿Rechazar firma?')) return;
+  const onInvalidarClick = (id) => {
+    setMovimientoToInvalidar(id);
+    setIsRejectModalOpen(true);
+  };
+
+  const handleInvalidar = async () => {
     try {
-      await api.put(`/movimientos/${id}/invalidar`);
+      await api.put(`/movimientos/${movimientoToInvalidar}/invalidar`);
       toast.info('Documento invalidado');
+      setIsRejectModalOpen(false);
       fetchData();
     } catch (e) {
       toast.error('Error al invalidar');
@@ -356,8 +367,39 @@ const Devolucion = () => {
           onVerPdf={handleVerPdfHistorial}
           onVerFirmado={handleVerFirmado}
           onSubirClick={handleSubirClick}
-          onInvalidar={handleInvalidar}
+          onInvalidar={onInvalidarClick}
         />
+        <Modal
+          isOpen={isRejectModalOpen}
+          onClose={() => setIsRejectModalOpen(false)}
+          title='Confirmar Rechazo'
+        >
+          <div className='confirm-modal-content'>
+            <div className='warning-icon reject'>
+              <FaExclamationTriangle />
+            </div>
+            <h3>¿Rechazar firma del documento?</h3>
+            <p>
+              Esta acción invalidará el PDF firmado actualmente.
+              <br />
+              Deberás subir un nuevo archivo válido.
+            </p>
+            <div className='modal-actions'>
+              <button
+                className='btn-cancel'
+                onClick={() => setIsRejectModalOpen(false)}
+              >
+                <FaTimes /> Cancelar
+              </button>
+              <button
+                className='btn-confirm-reject'
+                onClick={handleInvalidar}
+              >
+                <FaCheck /> Confirmar Rechazo
+              </button>
+            </div>
+          </div>
+        </Modal>
       </div>
 
       <PdfModal

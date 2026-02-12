@@ -359,3 +359,85 @@
     }
   }
 }
+// Estos estilos son idénticos a los del rechazo de devolución para mantener coherencia
+.confirm-modal-content {
+  padding: 1.5rem;
+  text-align: center;
+
+  .warning-icon.reject {
+    font-size: 3.5rem;
+    color: #f59e0b;
+    background-color: #fffbeb;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem auto;
+    animation: pulseWarning 2s infinite;
+  }
+
+  h3 {
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+
+  p {
+    color: #64748b;
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+
+    button {
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .btn-cancel {
+      background-color: #f1f5f9;
+      color: #64748b;
+      &:hover {
+        background-color: #e2e8f0;
+      }
+    }
+
+    .btn-confirm-reject {
+      background-color: #ef4444;
+      color: white;
+      box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+      &:hover {
+        background-color: #dc2626;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 12px rgba(239, 68, 68, 0.3);
+      }
+    }
+  }
+}
+
+@keyframes pulseWarning {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

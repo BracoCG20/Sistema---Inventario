@@ -2,12 +2,15 @@ import { useEffect, useState, useRef } from 'react';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
 import PdfModal from '../../components/Modal/PdfModal';
+import Modal from '../../components/Modal/Modal'; // Importar Modal base
 
 import EntregaForm from '../../components/Entrega/EntregaForm';
 import EntregaTable from '../../components/Entrega/EntregaTable';
 import { generarPDFBlob } from '../../utils/pdfGenerator';
 
-// Importamos el SCSS nuevo
+// Iconos para el modal
+import { FaExclamationTriangle, FaTimes, FaCheck } from 'react-icons/fa';
+
 import './Entrega.scss';
 
 const Entrega = () => {
@@ -17,6 +20,10 @@ const Entrega = () => {
   const [loading, setLoading] = useState(true);
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [pdfUrl, setPdfUrl] = useState('');
+
+  // Estados para el Modal de Rechazo
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [movimientoToInvalidar, setMovimientoToInvalidar] = useState(null);
 
   const fileInputRef = useRef(null);
   const [selectedMovimientoId, setSelectedMovimientoId] = useState(null);
@@ -28,7 +35,6 @@ const Entrega = () => {
     observaciones: '',
   });
 
-  // --- CARGA DE DATOS ---
   const fetchData = async () => {
     try {
       const [resEquipos, resUsuarios, resHistorial] = await Promise.all([
@@ -43,7 +49,6 @@ const Entrega = () => {
         ),
       );
 
-      // Filtrar usuarios ocupados
       const ocupados = new Set();
       resHistorial.data
         .sort(
@@ -80,7 +85,6 @@ const Entrega = () => {
     fetchData();
   }, []);
 
-  // --- MANEJO ARCHIVOS ---
   const handleSubirClick = (id) => {
     setSelectedMovimientoId(id);
     fileInputRef.current.click();
@@ -89,11 +93,9 @@ const Entrega = () => {
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file || !selectedMovimientoId) return;
-
     const toastId = toast.loading('Subiendo archivo...');
     const form = new FormData();
     form.append('pdf', file);
-
     try {
       await api.post(
         `/movimientos/${selectedMovimientoId}/subir-firmado`,
@@ -120,11 +122,17 @@ const Entrega = () => {
     e.target.value = null;
   };
 
-  const handleInvalidar = async (id) => {
-    if (!window.confirm('¿Rechazar firma?')) return;
+  // --- LÓGICA DE RECHAZO CON MODAL ---
+  const onInvalidarClick = (id) => {
+    setMovimientoToInvalidar(id);
+    setIsRejectModalOpen(true);
+  };
+
+  const handleInvalidar = async () => {
     try {
-      await api.put(`/movimientos/${id}/invalidar`);
+      await api.put(`/movimientos/${movimientoToInvalidar}/invalidar`);
       toast.info('Documento invalidado');
+      setIsRejectModalOpen(false);
       fetchData();
     } catch (e) {
       toast.error('Error al invalidar');
@@ -136,9 +144,8 @@ const Entrega = () => {
     setShowPdfModal(true);
   };
 
-  // --- ACCIONES ---
   const handleAction = async (tipoAccion) => {
-    if (!formData.equipo_id || !formData.empleado_id) return; // Validación extra
+    if (!formData.equipo_id || !formData.empleado_id) return;
 
     const us = usuariosLibres.find(
       (u) => u.id === parseInt(formData.empleado_id),
@@ -162,9 +169,7 @@ const Entrega = () => {
           fecha: new Date().toISOString(),
         });
         toast.success('Entrega guardada exitosamente');
-
-        const url = URL.createObjectURL(pdfBlob);
-        setPdfUrl(url);
+        setPdfUrl(URL.createObjectURL(pdfBlob));
         setShowPdfModal(true);
 
         if (tipoAccion === 'WHATSAPP') {
@@ -249,7 +254,7 @@ const Entrega = () => {
       <input
         type='file'
         ref={fileInputRef}
-        className='hidden-input'
+        style={{ display: 'none' }}
         accept='application/pdf'
         onChange={handleFileChange}
       />
@@ -281,9 +286,42 @@ const Entrega = () => {
           }}
           onVerFirmado={handleVerFirmado}
           onSubirClick={handleSubirClick}
-          onInvalidar={handleInvalidar}
+          onInvalidar={onInvalidarClick} // <--- Cambiado para abrir el modal
         />
       </div>
+
+      {/* --- MODAL DE RECHAZO ESTILIZADO --- */}
+      <Modal
+        isOpen={isRejectModalOpen}
+        onClose={() => setIsRejectModalOpen(false)}
+        title='Confirmar Rechazo'
+      >
+        <div className='confirm-modal-content'>
+          <div className='warning-icon reject'>
+            <FaExclamationTriangle />
+          </div>
+          <h3>¿Rechazar firma del documento?</h3>
+          <p>
+            Esta acción invalidará el PDF firmado de esta entrega.
+            <br />
+            Deberás subir un nuevo archivo escaneado.
+          </p>
+          <div className='modal-actions'>
+            <button
+              className='btn-cancel'
+              onClick={() => setIsRejectModalOpen(false)}
+            >
+              <FaTimes /> Cancelar
+            </button>
+            <button
+              className='btn-confirm-reject'
+              onClick={handleInvalidar}
+            >
+              <FaCheck /> Confirmar Rechazo
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <PdfModal
         isOpen={showPdfModal}
