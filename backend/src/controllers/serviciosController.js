@@ -1,5 +1,4 @@
 const db = require('../config/db');
-const axios = require('axios'); // <--- REQUISITO: npm install axios
 
 // 1. Obtener todos los servicios
 const getServicios = async (req, res) => {
@@ -45,10 +44,9 @@ const createServicio = async (req, res) => {
     empresa_usuaria_id,
     licencias_totales,
     licencias_usadas,
-    api_key,
     url_acceso,
     usuario_acceso,
-    password_acceso,
+    password_acceso, // Quitamos api_key
   } = req.body;
 
   try {
@@ -57,8 +55,8 @@ const createServicio = async (req, res) => {
                 nombre, descripcion, precio, moneda, frecuencia_pago, fecha_proximo_pago, 
                 metodo_pago, titular_pago, empresa_facturacion_id, empresa_usuaria_id, 
                 licencias_totales, licencias_usadas, creado_por_id,
-                api_key, url_acceso, usuario_acceso, password_acceso
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+                url_acceso, usuario_acceso, password_acceso
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
             RETURNING *;
         `;
     const values = [
@@ -75,7 +73,6 @@ const createServicio = async (req, res) => {
       licencias_totales || 0,
       licencias_usadas || 0,
       usuarioId,
-      api_key || null,
       url_acceso || null,
       usuario_acceso || null,
       password_acceso || null,
@@ -109,7 +106,6 @@ const updateServicio = async (req, res) => {
     empresa_usuaria_id,
     licencias_totales,
     licencias_usadas,
-    api_key,
     url_acceso,
     usuario_acceso,
     password_acceso,
@@ -126,39 +122,7 @@ const updateServicio = async (req, res) => {
                 metodo_pago = $8, titular_pago = $9, empresa_facturacion_id = $10, 
                 empresa_usuaria_id = $11, licencias_totales = $12, 
                 licencias_usadas = $13, modificado_por_id = $14,
-                api_key = $15, url_acceso = $16, usuario_acceso = $17, password_acceso = $18
-            WHERE id = $19 RETURNING *;
-        `;
-      values = [
-        nombre,
-        descripcion,
-        estado,
-        precio,
-        moneda,
-        frecuencia_pago,
-        fecha_proximo_pago || null,
-        metodo_pago,
-        titular_pago,
-        empresa_facturacion_id || null,
-        empresa_usuaria_id || null,
-        licencias_totales || 0,
-        licencias_usadas || 0,
-        usuarioId,
-        api_key,
-        url_acceso,
-        usuario_acceso,
-        password_acceso,
-        id,
-      ];
-    } else {
-      query = `
-            UPDATE servicios SET 
-                nombre = $1, descripcion = $2, estado = $3, precio = $4, 
-                moneda = $5, frecuencia_pago = $6, fecha_proximo_pago = $7, 
-                metodo_pago = $8, titular_pago = $9, empresa_facturacion_id = $10, 
-                empresa_usuaria_id = $11, licencias_totales = $12, 
-                licencias_usadas = $13, modificado_por_id = $14,
-                api_key = $15, url_acceso = $16, usuario_acceso = $17
+                url_acceso = $15, usuario_acceso = $16, password_acceso = $17
             WHERE id = $18 RETURNING *;
         `;
       values = [
@@ -176,7 +140,37 @@ const updateServicio = async (req, res) => {
         licencias_totales || 0,
         licencias_usadas || 0,
         usuarioId,
-        api_key,
+        url_acceso,
+        usuario_acceso,
+        password_acceso,
+        id,
+      ];
+    } else {
+      query = `
+            UPDATE servicios SET 
+                nombre = $1, descripcion = $2, estado = $3, precio = $4, 
+                moneda = $5, frecuencia_pago = $6, fecha_proximo_pago = $7, 
+                metodo_pago = $8, titular_pago = $9, empresa_facturacion_id = $10, 
+                empresa_usuaria_id = $11, licencias_totales = $12, 
+                licencias_usadas = $13, modificado_por_id = $14,
+                url_acceso = $15, usuario_acceso = $16
+            WHERE id = $17 RETURNING *;
+        `;
+      values = [
+        nombre,
+        descripcion,
+        estado,
+        precio,
+        moneda,
+        frecuencia_pago,
+        fecha_proximo_pago || null,
+        metodo_pago,
+        titular_pago,
+        empresa_facturacion_id || null,
+        empresa_usuaria_id || null,
+        licencias_totales || 0,
+        licencias_usadas || 0,
+        usuarioId,
         url_acceso,
         usuario_acceso,
         id,
@@ -245,13 +239,9 @@ const registrarPago = async (req, res) => {
     moneda,
     periodo_pagado,
     nueva_fecha_proximo_pago,
-    pdf_url_externa,
   } = req.body;
 
-  // Ajuste para Multer: guardamos la ruta completa a la carpeta raíz 'uploads'
-  const comprobante_url = req.file
-    ? `/uploads/${req.file.filename}`
-    : pdf_url_externa || null;
+  const comprobante_url = req.file ? `/uploads/${req.file.filename}` : null;
 
   try {
     const queryPago = `
@@ -284,45 +274,6 @@ const registrarPago = async (req, res) => {
   }
 };
 
-// 7. Sincronizar Factura Externa (MODO PRUEBA SEGURO)
-const sincronizarFacturaExterna = async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const result = await db.query('SELECT * FROM servicios WHERE id = $1', [
-      id,
-    ]);
-    const servicio = result.rows[0];
-
-    // 1. Validar que exista el servicio
-    if (!servicio) {
-      return res.status(404).json({ error: 'Servicio no encontrado.' });
-    }
-
-    // 2. INTENTO DE CONEXIÓN (Simulación o Real)
-    // En este caso, simulamos que conectamos y obtenemos datos, pero NO el archivo.
-
-    // Datos simulados que Metricool devolvería (Fecha y Monto)
-    const datosFactura = {
-      fecha: new Date().toISOString(),
-      monto: 172.0, // Precio detectado
-      moneda: 'USD',
-      periodo: 'Febrero 2026',
-    };
-
-    res.status(200).json({
-      conectado: true,
-      mensaje: 'Sincronización de datos exitosa.',
-      datos: datosFactura,
-      // IMPORTANTE: Enviamos pdf_url como null para que el frontend no muestre el link roto
-      pdf_url: null,
-    });
-  } catch (error) {
-    console.error('Error al sincronizar:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
-};
-
 module.exports = {
   getServicios,
   createServicio,
@@ -330,5 +281,4 @@ module.exports = {
   cambiarEstadoServicio,
   getPagosPorServicio,
   registrarPago,
-  sincronizarFacturaExterna,
 };

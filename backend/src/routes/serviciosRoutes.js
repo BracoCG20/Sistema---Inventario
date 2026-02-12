@@ -3,13 +3,13 @@ const router = Router();
 const multer = require('multer');
 const path = require('path');
 
-// 1. Importamos TU middleware de autenticación
+// 1. Middleware de autenticación
 const verifyToken = require('../middlewares/authMiddleware');
 
-// 2. Configuración de Multer
+// 2. Configuración de Multer (Para guardar los PDFs en /uploads)
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/'); // Carpeta raíz uploads
+    cb(null, 'uploads/');
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
@@ -26,23 +26,16 @@ const {
   cambiarEstadoServicio,
   getPagosPorServicio,
   registrarPago,
-  sincronizarFacturaExterna, // <--- Asegúrate de que esto esté importado
 } = require('../controllers/serviciosController');
 
 // --- RUTAS DE SERVICIOS ---
-
 router.get('/', verifyToken, getServicios);
 router.post('/', verifyToken, createServicio);
 router.put('/:id', verifyToken, updateServicio);
 router.put('/:id/estado', verifyToken, cambiarEstadoServicio);
 
 // --- RUTAS DE HISTORIAL DE PAGOS ---
-
-// Obtener historial
 router.get('/:id/pagos', verifyToken, getPagosPorServicio);
-
-// Sincronizar factura (API externa)
-router.post('/:id/sync-invoice', verifyToken, sincronizarFacturaExterna);
 
 // Registrar pago manual (con subida de archivo)
 router.post(

@@ -11,6 +11,10 @@ import {
   FaExternalLinkAlt,
   FaSync,
   FaCheckCircle,
+  FaEye, // <--- Nuevo
+  FaDownload, // <--- Nuevo
+  FaTrashAlt, // <--- Nuevo
+  FaFileImage, // <--- Nuevo
 } from 'react-icons/fa';
 
 import './AddServicioForm.scss';
@@ -32,6 +36,8 @@ const PagoServicioModal = ({ servicio, onClose }) => {
 
   const [pdfDetectado, setPdfDetectado] = useState(null);
   const [archivo, setArchivo] = useState(null);
+  // Estado para la URL temporal de previsualización
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   const monedaOptions = [
     { value: 'USD', label: 'USD' },
@@ -60,7 +66,15 @@ const PagoServicioModal = ({ servicio, onClose }) => {
     }
   }, [servicio]);
 
-  // --- FUNCIÓN SINCRONIZAR ACTUALIZADA ---
+  // Limpiar la URL del objeto cuando el componente se desmonte o cambie el archivo
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   const handleSyncInvoice = async () => {
     setSyncing(true);
     setPdfDetectado(null);
@@ -72,7 +86,6 @@ const PagoServicioModal = ({ servicio, onClose }) => {
       if (data.conectado) {
         toast.success('¡Datos sincronizados correctamente!');
 
-        // 1. Rellenar formulario con datos recibidos (si existen)
         if (data.datos) {
           setFormData((prev) => ({
             ...prev,
@@ -85,12 +98,10 @@ const PagoServicioModal = ({ servicio, onClose }) => {
           }));
         }
 
-        // 2. Manejo del PDF
         if (data.pdf_url) {
           setPdfDetectado(data.pdf_url);
           toast.info('Factura PDF encontrada.');
         } else {
-          // Si NO hay PDF (caso Metricool), avisamos al usuario
           toast.info(
             "Metricool no entrega el PDF vía API. Usa 'Ir al Portal' para descargarlo.",
             { autoClose: 5000 },
@@ -117,7 +128,21 @@ const PagoServicioModal = ({ servicio, onClose }) => {
   };
 
   const handleFileChange = (e) => {
-    setArchivo(e.target.files[0]);
+    const file = e.target.files[0];
+    if (file) {
+      setArchivo(file);
+      // Creamos una URL temporal para ver el archivo localmente
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setArchivo(null);
+    setPreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -149,9 +174,8 @@ const PagoServicioModal = ({ servicio, onClose }) => {
         autoClose: 2000,
       });
 
-      setArchivo(null);
+      handleRemoveFile(); // Limpia archivo y preview
       setPdfDetectado(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
       setFormData((prev) => ({ ...prev, periodo_pagado: '' }));
       fetchPagos();
     } catch (error) {
@@ -246,33 +270,19 @@ const PagoServicioModal = ({ servicio, onClose }) => {
           onSubmit={handleSubmit}
           style={{ padding: 0, maxHeight: 'none', overflow: 'visible' }}
         >
-          {/* AVISO DE PDF DETECTADO (Solo si existe url real) */}
+          {/* AVISO DE PDF DETECTADO API */}
           {pdfDetectado && (
-            <div
-              style={{
-                background: '#ecfdf5',
-                border: '1px solid #10b981',
-                color: '#047857',
-                padding: '10px',
-                borderRadius: '8px',
-                marginBottom: '15px',
-                fontSize: '0.9rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-            >
-              <FaCheckCircle /> PDF detectado.
+            <div className='alert-box success'>
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <FaCheckCircle /> PDF detectado automáticamente vía API.
+              </div>
               <a
                 href={pdfDetectado}
                 target='_blank'
                 rel='noreferrer'
-                style={{
-                  textDecoration: 'underline',
-                  color: '#047857',
-                  marginLeft: 'auto',
-                  fontWeight: 'bold',
-                }}
+                className='link-view'
               >
                 Ver PDF
               </a>
@@ -341,23 +351,75 @@ const PagoServicioModal = ({ servicio, onClose }) => {
             </div>
           </div>
 
+          {/* --- SECCIÓN DE SUBIDA DE ARCHIVO CON PREVISUALIZACIÓN --- */}
           <div className='input-group'>
             <label>Comprobante / Invoice (PDF o Imagen)</label>
-            <input
-              type='file'
-              accept='.pdf,image/*'
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              disabled={!!pdfDetectado}
-              style={{
-                padding: '8px',
-                background: '#f8fafc',
-                border: '1px dashed #cbd5e1',
-                cursor: 'pointer',
-              }}
-            />
+
+            {/* Si NO hay archivo seleccionado NI detectado, mostramos el input */}
+            {!archivo && !pdfDetectado && (
+              <input
+                type='file'
+                accept='.pdf,image/*'
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className='file-input-custom'
+              />
+            )}
+
+            {/* Si HAY un archivo seleccionado manualmente, mostramos la tarjeta de vista previa */}
+            {archivo && (
+              <div className='file-preview-box'>
+                <div className='file-info'>
+                  {archivo.type.includes('image') ? (
+                    <FaFileImage className='icon img' />
+                  ) : (
+                    <FaFilePdf className='icon pdf' />
+                  )}
+                  <div className='details'>
+                    <span className='filename'>{archivo.name}</span>
+                    <span className='filesize'>
+                      {(archivo.size / 1024).toFixed(1)} KB
+                    </span>
+                  </div>
+                </div>
+                <div className='file-actions'>
+                  {/* Botón Ver */}
+                  <button
+                    type='button'
+                    className='action-btn view'
+                    onClick={() => window.open(previewUrl, '_blank')}
+                    title='Vista Previa'
+                  >
+                    <FaEye />
+                  </button>
+
+                  {/* Botón Descargar (usando el blob local) */}
+                  <a
+                    href={previewUrl}
+                    download={archivo.name}
+                    className='action-btn download'
+                    title='Descargar'
+                  >
+                    <FaDownload />
+                  </a>
+
+                  {/* Botón Eliminar */}
+                  <button
+                    type='button'
+                    className='action-btn remove'
+                    onClick={handleRemoveFile}
+                    title='Quitar archivo'
+                  >
+                    <FaTrashAlt />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {pdfDetectado && (
-              <small style={{ color: '#059669' }}>
+              <small
+                style={{ color: '#059669', marginTop: '5px', display: 'block' }}
+              >
                 * Se usará el PDF importado automáticamente.
               </small>
             )}

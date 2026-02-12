@@ -31,16 +31,12 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
     licencias_totales: 0,
     licencias_usadas: 0,
     estado: 'Activo',
-    // Credenciales
-    api_key: '',
-    url_acceso: 'https://app.metricool.com', // Valor sugerido
-    usuario_acceso: '',
-    password_acceso: '',
   });
 
   const monedaOptions = [
     { value: 'USD', label: 'USD' },
     { value: 'PEN', label: 'PEN' },
+    { value: 'EUR', label: 'EUR' },
   ];
 
   const frecuenciaOptions = [
@@ -94,11 +90,6 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
         licencias_totales: servicioToEdit.licencias_totales || 0,
         licencias_usadas: servicioToEdit.licencias_usadas || 0,
         estado: servicioToEdit.estado || 'Activo',
-        // Cargar credenciales existentes
-        api_key: servicioToEdit.api_key || '',
-        url_acceso: servicioToEdit.url_acceso || 'https://app.metricool.com',
-        usuario_acceso: servicioToEdit.usuario_acceso || '',
-        password_acceso: '', // Por seguridad, la contraseña no se pre-carga visualmente
       });
     }
   }, [servicioToEdit]);
@@ -194,7 +185,7 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
       {/* SECCIÓN 1: DATOS BÁSICOS */}
       <div className='form-row-all'>
         <div className='input-group'>
-          <label>Nombre del Servicio / SaaS *</label>
+          <label>Nombre del Servicio*</label>
           <input
             name='nombre'
             value={formData.nombre}
@@ -270,7 +261,7 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
             }
             onChange={handleSelectChange}
             styles={customSelectStyles}
-            placeholder='Seleccione o escriba...'
+            placeholder='Seleccione'
             isClearable
           />
         </div>
@@ -299,7 +290,7 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
         <div className='input-group'></div>
       </div>
 
-      <hr style={{ margin: '1rem 0', borderTop: '1px solid #f1f5f9' }} />
+      <hr style={{ margin: '0.5rem', borderTop: '1px solid #f1f5f9' }} />
 
       {/* SECCIÓN 3: EMPRESAS Y LICENCIAS */}
       <div className='form-row'>
@@ -354,75 +345,6 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
             onChange={handleChange}
             min='0'
             style={{ minHeight: '42px' }}
-          />
-        </div>
-      </div>
-
-      <hr style={{ margin: '1rem 0', borderTop: '1px solid #f1f5f9' }} />
-
-      {/* SECCIÓN 4: CREDENCIALES Y API (¡AQUÍ ESTÁN LOS INPUTS QUE FALTABAN!) */}
-      <h4
-        style={{
-          fontSize: '0.9rem',
-          color: '#4f46e5',
-          margin: '0 0 1rem 0',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-        }}
-      >
-        <FaKey /> Credenciales y Acceso
-      </h4>
-
-      <div className='form-row'>
-        <div className='input-group'>
-          <label>
-            <FaLink style={{ marginRight: '5px' }} /> URL de Acceso
-          </label>
-          <input
-            name='url_acceso'
-            value={formData.url_acceso}
-            onChange={handleChange}
-            placeholder='https://app.servicio.com'
-          />
-        </div>
-        <div className='input-group'>
-          <label>API Key / Token (Opcional)</label>
-          <input
-            type='password'
-            name='api_key'
-            value={formData.api_key}
-            onChange={handleChange}
-            placeholder='••••••••'
-            autoComplete='new-password'
-          />
-        </div>
-      </div>
-
-      <div className='form-row'>
-        <div className='input-group'>
-          <label>
-            <FaUserShield style={{ marginRight: '5px' }} /> Usuario / Correo de
-            Acceso
-          </label>
-          <input
-            name='usuario_acceso'
-            value={formData.usuario_acceso}
-            onChange={handleChange}
-            placeholder='admin@empresa.com'
-          />
-        </div>
-        <div className='input-group'>
-          <label>
-            <FaLock style={{ marginRight: '5px' }} /> Contraseña de Acceso
-          </label>
-          <input
-            type='password'
-            name='password_acceso'
-            value={formData.password_acceso}
-            onChange={handleChange}
-            placeholder='••••••••'
-            autoComplete='new-password'
           />
         </div>
       </div>

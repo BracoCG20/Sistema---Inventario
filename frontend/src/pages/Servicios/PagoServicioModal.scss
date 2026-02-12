@@ -4,7 +4,31 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  padding-bottom: 1rem; // Un poco de aire al final
+  padding-bottom: 1rem;
+
+  // Banner de alertas (para PDF API)
+  .alert-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+
+    &.success {
+      background: #ecfdf5;
+      border: 1px solid #10b981;
+      color: #047857;
+    }
+
+    .link-view {
+      text-decoration: underline;
+      color: inherit;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  }
 
   // --- BANNER DE CREDENCIALES ---
   .credentials-banner {
@@ -16,7 +40,7 @@
     justify-content: space-between;
     align-items: center;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-    flex-wrap: wrap; // Para móviles
+    flex-wrap: wrap;
     gap: 1rem;
 
     .creds-info {
@@ -56,6 +80,10 @@
       &:hover {
         background: #4338ca;
       }
+      &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
     }
   }
 
@@ -65,7 +93,7 @@
     border-radius: 12px;
     border: 1px solid #e2e8f0;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
-    overflow: visible; // CAMBIO IMPORTANTE: Permitir que los dropdowns salgan
+    overflow: visible;
 
     &.padding-content {
       padding: 1.5rem;
@@ -81,6 +109,116 @@
       font-weight: 700;
       svg {
         color: v.$primary;
+      }
+    }
+
+    // Input file original
+    .file-input-custom {
+      padding: 8px;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      cursor: pointer;
+      width: 100%;
+      border-radius: 8px;
+      color: #64748b;
+      font-size: 0.85rem;
+
+      &::file-selector-button {
+        background-color: #fff;
+        color: #334155;
+        border: 1px solid #e2e8f0;
+        padding: 5px 12px;
+        border-radius: 6px;
+        margin-right: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        &:hover {
+          background-color: #f1f5f9;
+          border-color: #cbd5e1;
+        }
+      }
+    }
+
+    // --- NUEVA TARJETA DE PREVISUALIZACIÓN ---
+    .file-preview-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 15px;
+      background: #eff6ff; // Fondo azul muy claro
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+
+      .file-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .icon {
+          font-size: 1.5rem;
+          &.pdf {
+            color: #ef4444;
+          }
+          &.img {
+            color: #3b82f6;
+          }
+        }
+
+        .details {
+          display: flex;
+          flex-direction: column;
+          .filename {
+            font-weight: 600;
+            color: #1e3a8a;
+            font-size: 0.9rem;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .filesize {
+            font-size: 0.75rem;
+            color: #64748b;
+          }
+        }
+      }
+
+      .file-actions {
+        display: flex;
+        gap: 8px;
+
+        .action-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: 6px;
+          border: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s;
+          color: white;
+
+          &.view {
+            background: #3b82f6;
+            &:hover {
+              background: #2563eb;
+            }
+          }
+          &.download {
+            background: #10b981;
+            &:hover {
+              background: #059669;
+            }
+          }
+          &.remove {
+            background: #ef4444;
+            &:hover {
+              background: #dc2626;
+            }
+          }
+        }
       }
     }
   }
@@ -111,14 +249,11 @@
     }
 
     .table-scroll {
-      // AQUÍ ESTABA EL PROBLEMA:
-      // Quitamos max-height y overflow-y para que no cree un segundo scroll.
-      // La tabla crecerá y usará el scroll del modal principal.
       width: 100%;
       border: 1px solid #e2e8f0;
       border-radius: 12px;
       background: white;
-      overflow: hidden; // Solo para redondear bordes
+      overflow: hidden;
 
       table {
         width: 100%;
@@ -127,7 +262,6 @@
 
         thead {
           background: #eef2ff;
-
           th {
             padding: 12px 16px;
             text-align: left;
@@ -153,7 +287,6 @@
             padding: 12px 16px;
             vertical-align: middle;
             color: #334155;
-
             &.date {
               font-weight: 600;
               color: #334155;
@@ -176,7 +309,7 @@
     }
   }
 
-  // --- BOTÓN VER PDF ---
+  // --- BOTÓN VER PDF EN TABLA ---
   .btn-ver-pdf {
     background: #fee2e2;
     color: #ef4444;
