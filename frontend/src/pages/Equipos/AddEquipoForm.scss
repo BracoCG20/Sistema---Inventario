@@ -7,11 +7,11 @@
 
   .form-row {
     display: grid;
-    grid-template-columns: 1fr 1fr; // Dos columnas
+    grid-template-columns: 1fr 1fr;
     gap: 1rem;
 
     @media (max-width: 600px) {
-      grid-template-columns: 1fr; // Una columna en móvil
+      grid-template-columns: 1fr;
     }
   }
 
@@ -24,26 +24,37 @@
       font-size: 0.85rem;
       font-weight: 600;
       color: v.$text-muted;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     input,
-    select,
-    textarea {
+    select {
       @include v.glass-input;
       font-family: inherit;
     }
 
-    // --- ESTILO FIJO PARA EL TEXTAREA ---
-    textarea {
+    // --- ESTILO ESPECÍFICO PARA TEXTAREA ---
+    textarea.custom-textarea {
+      @include v.glass-input; // Hereda estilos base (fondo, borde)
+      font-family: inherit;
       line-height: 1.5;
-      resize: none; // Bloquea el cambio de tamaño manual
+      resize: none; // Bloquea redimensión manual
       height: 100px; // Altura fija
-      padding: 10px 14px;
-      resize: none;
+      padding: 12px; // Padding interno
+      width: 100%; // Ancho completo
+      border-radius: 8px; // Bordes redondeados
+
+      &:focus {
+        border-color: v.$primary;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(v.$primary, 0.1);
+      }
     }
   }
 
-  // Sección de Specs Dinámicas
+  // ... (Resto de estilos de specs-section, btn-submit, etc. se mantienen igual) ...
   .specs-section {
     margin-top: 1.5rem;
     padding-top: 1.5rem;
@@ -93,9 +104,9 @@
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
-      background: rgba(v.$secondary, 0.1); // Fondo turquesa suave
+      background: rgba(v.$secondary, 0.1);
       border: none;
-      color: darken(v.$secondary, 10%); // Texto turquesa más oscuro
+      color: darken(v.$secondary, 10%);
       width: 100%;
       padding: 12px;
       border-radius: 8px;
@@ -120,33 +131,5 @@
     width: 100%;
     padding: 12px;
     font-size: 1rem;
-  }
-}
-
-.checkbox-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 15px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  width: 100%;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #f1f5f9 !important;
-  }
-
-  input[type='checkbox'] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-  }
-
-  span {
-    font-weight: 600;
-    color: #334155;
-    font-size: 0.9rem;
   }
 }

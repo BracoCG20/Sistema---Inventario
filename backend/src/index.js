@@ -11,6 +11,8 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const authRoutes = require('./routes/authRoutes');
 const empresasRoutes = require('./routes/empresasRoutes');
 const serviciosRoutes = require('./routes/serviciosRoutes');
+const proveedoresRoutes = require('./routes/proveedoresRoutes'); // <--- NUEVO IMPORT
+
 // Middleware de autenticación
 const verifyToken = require('./middlewares/authMiddleware');
 
@@ -30,7 +32,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/uploads', express.static('uploads'));
 
-// --- RUTAS PROTEGIDAS ---
+// --- RUTAS PROTEGIDAS (Requieren Token) ---
 app.use('/api/equipos', verifyToken, equiposRoutes);
 app.use('/api/usuarios', verifyToken, usuariosRoutes);
 app.use('/api/servicios', verifyToken, serviciosRoutes);
@@ -39,6 +41,7 @@ app.use('/api/servicios', verifyToken, serviciosRoutes);
 app.use('/api/movimientos', verifyToken, movimientosRoutes);
 app.use('/api/historial', verifyToken, movimientosRoutes);
 app.use('/api/empresas', verifyToken, empresasRoutes);
+app.use('/api/proveedores', verifyToken, proveedoresRoutes); // <--- NUEVA RUTA REGISTRADA
 
 // Notificaciones (Correo y WhatsApp)
 app.use('/api/notificaciones', verifyToken, notificationRoutes);

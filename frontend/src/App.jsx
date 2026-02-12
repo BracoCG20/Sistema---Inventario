@@ -18,6 +18,7 @@ import Servicios from './pages/Servicios/Servicios';
 
 // 1. IMPORTAR LA NUEVA PÁGINA
 import Configuracion from './pages/Configuracion/Configuracion';
+import Proveedores from './pages/Proveedores/Proveedores';
 
 function App() {
   return (
@@ -47,6 +48,10 @@ function App() {
             <Route
               path='usuarios'
               element={<Usuarios />}
+            />
+            <Route
+              path='proveedores'
+              element={<Proveedores />}
             />
             <Route
               path='/servicios'

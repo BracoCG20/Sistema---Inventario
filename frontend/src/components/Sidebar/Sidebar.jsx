@@ -10,8 +10,7 @@ import {
   FaSignOutAlt,
   FaCog,
   FaUserCircle,
-  FaBriefcase,
-  FaServer,
+  FaTruck,
   FaCloud,
 } from 'react-icons/fa';
 import { FaArrowRightArrowLeft } from 'react-icons/fa6';
@@ -53,6 +52,8 @@ const Sidebar = () => {
     { path: '/', name: 'Dashboard', icon: <FaHome /> },
     { path: '/equipos', name: 'Equipos', icon: <FaLaptop /> },
     { path: '/usuarios', name: 'Colaboradores', icon: <FaUsers /> },
+    { path: '/proveedores', name: 'Proveedores', icon: <FaTruck /> },
+
     { path: '/servicios', name: 'Servicios', icon: <FaCloud /> },
     {
       path: '/entrega',

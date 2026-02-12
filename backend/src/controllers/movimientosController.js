@@ -1,121 +1,127 @@
-const db = require("../config/db");
-const transporter = require("../config/mailer");
-const path = require("path");
+const db = require('../config/db');
+const transporter = require('../config/mailer');
+const path = require('path');
 
 // --- 1. REGISTRAR ENTREGA ---
 const registrarEntrega = async (req, res) => {
-	const adminId = req.user ? req.user.id : null;
-	const { equipo_id, empleado_id, fecha, cargador, observaciones } = req.body;
-	const client = await db.pool.connect();
+  const adminId = req.user ? req.user.id : null;
+  const { equipo_id, empleado_id, fecha, cargador, observaciones } = req.body;
+  const client = await db.pool.connect();
 
-	try {
-		await client.query("BEGIN");
+  try {
+    await client.query('BEGIN');
 
-		const checkEquipo = await client.query(
-			"SELECT disponible FROM equipos WHERE id = $1",
-			[equipo_id],
-		);
-		if (checkEquipo.rows.length === 0) throw new Error("Equipo no encontrado");
-		if (checkEquipo.rows[0].disponible === false)
-			throw new Error("El equipo ya está asignado");
+    const checkEquipo = await client.query(
+      'SELECT disponible FROM equipos WHERE id = $1',
+      [equipo_id],
+    );
+    if (checkEquipo.rows.length === 0) throw new Error('Equipo no encontrado');
+    if (checkEquipo.rows[0].disponible === false)
+      throw new Error('El equipo ya está asignado');
 
-		const insertMov = `
+    const insertMov = `
         INSERT INTO movimientos 
         (equipo_id, empleado_id, tipo, fecha_movimiento, cargador_incluido, observaciones, correo_enviado, registrado_por_id)
         VALUES ($1, $2, 'entrega', $3, $4, $5, NULL, $6)
         RETURNING id
     `;
 
-		const movResult = await client.query(insertMov, [
-			equipo_id,
-			empleado_id,
-			fecha,
-			cargador,
-			observaciones,
-			adminId,
-		]);
+    const movResult = await client.query(insertMov, [
+      equipo_id,
+      empleado_id,
+      fecha,
+      cargador,
+      observaciones,
+      adminId,
+    ]);
 
-		await client.query("UPDATE equipos SET disponible = false WHERE id = $1", [
-			equipo_id,
-		]);
-		await client.query("COMMIT");
+    // Al entregar, limpiamos la última observación anterior porque empieza un nuevo ciclo
+    await client.query(
+      'UPDATE equipos SET disponible = false, ultima_observacion = NULL WHERE id = $1',
+      [equipo_id],
+    );
 
-		res.status(201).json({
-			message: "Entrega registrada",
-			movimiento_id: movResult.rows[0].id,
-		});
-	} catch (error) {
-		await client.query("ROLLBACK");
-		console.error(error);
-		res.status(400).json({ error: error.message });
-	} finally {
-		client.release();
-	}
+    await client.query('COMMIT');
+
+    res.status(201).json({
+      message: 'Entrega registrada',
+      movimiento_id: movResult.rows[0].id,
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error(error);
+    res.status(400).json({ error: error.message });
+  } finally {
+    client.release();
+  }
 };
 
 // --- 2. REGISTRAR ENTREGA CON CORREO ---
 const registrarEntregaConCorreo = async (req, res) => {
-	const adminId = req.user ? req.user.id : null;
-	const {
-		equipo_id,
-		empleado_id,
-		cargador,
-		destinatario,
-		nombreEmpleado,
-		tipoEquipo,
-	} = req.body;
-	const archivoPDF = req.file;
+  const adminId = req.user ? req.user.id : null;
+  const {
+    equipo_id,
+    empleado_id,
+    cargador,
+    destinatario,
+    nombreEmpleado,
+    tipoEquipo,
+  } = req.body;
+  const archivoPDF = req.file;
 
-	const client = await db.pool.connect();
-	let movimientoId = null;
+  const client = await db.pool.connect();
+  let movimientoId = null;
 
-	try {
-		await client.query("BEGIN");
+  try {
+    await client.query('BEGIN');
 
-		const checkEquipo = await client.query(
-			"SELECT disponible FROM equipos WHERE id = $1",
-			[equipo_id],
-		);
-		if (
-			checkEquipo.rows.length === 0 ||
-			checkEquipo.rows[0].disponible === false
-		) {
-			throw new Error("El equipo no está disponible");
-		}
+    const checkEquipo = await client.query(
+      'SELECT disponible FROM equipos WHERE id = $1',
+      [equipo_id],
+    );
+    if (
+      checkEquipo.rows.length === 0 ||
+      checkEquipo.rows[0].disponible === false
+    ) {
+      throw new Error('El equipo no está disponible');
+    }
 
-		const cargadorBool = cargador === "true" || cargador === true;
+    const cargadorBool = cargador === 'true' || cargador === true;
 
-		const insertMov = `
+    const insertMov = `
         INSERT INTO movimientos 
         (equipo_id, empleado_id, tipo, fecha_movimiento, cargador_incluido, correo_enviado, registrado_por_id)
         VALUES ($1, $2, 'entrega', NOW(), $3, false, $4)
         RETURNING id
     `;
-		const result = await client.query(insertMov, [
-			equipo_id,
-			empleado_id,
-			cargadorBool,
-			adminId,
-		]);
-		movimientoId = result.rows[0].id;
+    const result = await client.query(insertMov, [
+      equipo_id,
+      empleado_id,
+      cargadorBool,
+      adminId,
+    ]);
+    movimientoId = result.rows[0].id;
 
-		await client.query("UPDATE equipos SET disponible = false WHERE id = $1", [
-			equipo_id,
-		]);
-		await client.query("COMMIT");
-	} catch (dbError) {
-		await client.query("ROLLBACK");
-		client.release();
-		return res
-			.status(400)
-			.json({ error: dbError.message || "Error al guardar en BD" });
-	}
+    // Al entregar, limpiamos la última observación y marcamos como ocupado
+    await client.query(
+      'UPDATE equipos SET disponible = false, ultima_observacion = NULL WHERE id = $1',
+      [equipo_id],
+    );
 
-	try {
-		const cargadorBool = cargador === "true" || cargador === true;
-		const textoCargador = cargadorBool ? "SÍ (Incluido)" : "NO (Solo equipo)";
+    await client.query('COMMIT');
+  } catch (dbError) {
+    await client.query('ROLLBACK');
+    client.release();
+    return res
+      .status(400)
+      .json({ error: dbError.message || 'Error al guardar en BD' });
+  }
 
-		const htmlTemplate = `
+  try {
+    const cargadorBool = cargador === 'true' || cargador === true;
+    const textoCargador = cargadorBool ? 'SÍ (Incluido)' : 'NO (Solo equipo)';
+
+    const htmlTemplate = `
     <!DOCTYPE html>
     <html>
     <head><style>body { font-family: 'Segoe UI', sans-serif; background-color: #f3f4f6; }</style></head>
@@ -151,148 +157,151 @@ const registrarEntregaConCorreo = async (req, res) => {
     </html>
     `;
 
-		const mailOptions = {
-			from: `"SISTEMA GTH" <${process.env.EMAIL_USER}>`,
-			to: destinatario,
-			subject: `📢 Entrega de Equipo: ${tipoEquipo}`,
-			html: htmlTemplate,
-			attachments: [
-				{ filename: "Acta_Entrega.pdf", content: archivoPDF.buffer },
-				{
-					filename: "logo_gruposp.png",
-					path: path.join(__dirname, "../assets/logo_gruposp.png"),
-					cid: "logo",
-				},
-			],
-		};
+    const mailOptions = {
+      from: `"SISTEMA GTH" <${process.env.EMAIL_USER}>`,
+      to: destinatario,
+      subject: `📢 Entrega de Equipo: ${tipoEquipo}`,
+      html: htmlTemplate,
+      attachments: [
+        { filename: 'Acta_Entrega.pdf', content: archivoPDF.buffer },
+        {
+          filename: 'logo_gruposp.png',
+          path: path.join(__dirname, '../assets/logo_gruposp.png'),
+          cid: 'logo',
+        },
+      ],
+    };
 
-		await transporter.sendMail(mailOptions);
-		await db.query(
-			"UPDATE movimientos SET correo_enviado = true WHERE id = $1",
-			[movimientoId],
-		);
-		res
-			.status(201)
-			.json({ message: "Guardado y correo enviado correctamente" });
-	} catch (mailError) {
-		console.error("Error envío correo:", mailError);
-		res.status(201).json({
-			message: "Guardado, pero falló el envío de correo.",
-			warning: true,
-		});
-	} finally {
-		if (client) client.release();
-	}
+    await transporter.sendMail(mailOptions);
+    await db.query(
+      'UPDATE movimientos SET correo_enviado = true WHERE id = $1',
+      [movimientoId],
+    );
+    res
+      .status(201)
+      .json({ message: 'Guardado y correo enviado correctamente' });
+  } catch (mailError) {
+    console.error('Error envío correo:', mailError);
+    res.status(201).json({
+      message: 'Guardado, pero falló el envío de correo.',
+      warning: true,
+    });
+  } finally {
+    if (client) client.release();
+  }
 };
 
-// --- 3. REGISTRAR DEVOLUCIÓN ---
+// --- 3. REGISTRAR DEVOLUCIÓN (ACTUALIZADO: Guarda observación en equipos) ---
 const registrarDevolucion = async (req, res) => {
-	const adminId = req.user ? req.user.id : null;
-	const {
-		equipo_id,
-		empleado_id,
-		fecha,
-		cargador,
-		observaciones,
-		estado_final,
-	} = req.body;
-	const client = await db.pool.connect();
+  const adminId = req.user ? req.user.id : null;
+  const {
+    equipo_id,
+    empleado_id,
+    fecha,
+    cargador,
+    observaciones,
+    estado_final,
+  } = req.body;
+  const client = await db.pool.connect();
 
-	try {
-		await client.query("BEGIN");
+  try {
+    await client.query('BEGIN');
 
-		const insertMov = `
+    const insertMov = `
         INSERT INTO movimientos 
         (equipo_id, empleado_id, tipo, fecha_movimiento, cargador_incluido, observaciones, estado_equipo_momento, registrado_por_id)
         VALUES ($1, $2, 'devolucion', $3, $4, $5, $6, $7)
     `;
-		await client.query(insertMov, [
-			equipo_id,
-			empleado_id,
-			fecha,
-			cargador,
-			observaciones,
-			estado_final,
-			adminId,
-		]);
+    await client.query(insertMov, [
+      equipo_id,
+      empleado_id,
+      fecha,
+      cargador,
+      observaciones,
+      estado_final,
+      adminId,
+    ]);
 
-		await client.query(
-			"UPDATE equipos SET disponible = true, estado = $1 WHERE id = $2",
-			[estado_final, equipo_id],
-		);
-		await client.query("COMMIT");
-		res.status(201).json({ message: "Devolución registrada" });
-	} catch (error) {
-		await client.query("ROLLBACK");
-		console.error(error);
-		res.status(500).json({ error: "Error al registrar devolución" });
-	} finally {
-		client.release();
-	}
+    // AHORA SÍ: Actualizamos 'ultima_observacion' en la tabla equipos
+    await client.query(
+      'UPDATE equipos SET disponible = true, estado = $1, ultima_observacion = $2 WHERE id = $3',
+      [estado_final, observaciones, equipo_id],
+    );
+
+    await client.query('COMMIT');
+    res.status(201).json({ message: 'Devolución registrada' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error(error);
+    res.status(500).json({ error: 'Error al registrar devolución' });
+  } finally {
+    client.release();
+  }
 };
 
-// --- 4. REGISTRAR DEVOLUCIÓN CON CORREO ---
+// --- 4. REGISTRAR DEVOLUCIÓN CON CORREO (ACTUALIZADO: Guarda observación en equipos) ---
 const registrarDevolucionConCorreo = async (req, res) => {
-	const adminId = req.user ? req.user.id : null;
-	const {
-		equipo_id,
-		empleado_id,
-		cargador,
-		destinatario,
-		nombreEmpleado,
-		tipoEquipo,
-		estado_final,
-		observaciones,
-	} = req.body;
-	const archivoPDF = req.file;
+  const adminId = req.user ? req.user.id : null;
+  const {
+    equipo_id,
+    empleado_id,
+    cargador,
+    destinatario,
+    nombreEmpleado,
+    tipoEquipo,
+    estado_final,
+    observaciones,
+  } = req.body;
+  const archivoPDF = req.file;
 
-	const client = await db.pool.connect();
-	let movimientoId = null;
+  const client = await db.pool.connect();
+  let movimientoId = null;
 
-	try {
-		await client.query("BEGIN");
+  try {
+    await client.query('BEGIN');
 
-		const cargadorBool = cargador === "true" || cargador === true;
+    const cargadorBool = cargador === 'true' || cargador === true;
 
-		const insertMov = `
+    const insertMov = `
         INSERT INTO movimientos 
         (equipo_id, empleado_id, tipo, fecha_movimiento, cargador_incluido, observaciones, estado_equipo_momento, correo_enviado, registrado_por_id)
         VALUES ($1, $2, 'devolucion', NOW(), $3, $4, $5, false, $6)
         RETURNING id
     `;
-		const result = await client.query(insertMov, [
-			equipo_id,
-			empleado_id,
-			cargadorBool,
-			observaciones,
-			estado_final,
-			adminId,
-		]);
-		movimientoId = result.rows[0].id;
+    const result = await client.query(insertMov, [
+      equipo_id,
+      empleado_id,
+      cargadorBool,
+      observaciones,
+      estado_final,
+      adminId,
+    ]);
+    movimientoId = result.rows[0].id;
 
-		await client.query(
-			"UPDATE equipos SET disponible = true, estado = $1 WHERE id = $2",
-			[estado_final, equipo_id],
-		);
+    // AHORA SÍ: Actualizamos 'ultima_observacion' en la tabla equipos
+    await client.query(
+      'UPDATE equipos SET disponible = true, estado = $1, ultima_observacion = $2 WHERE id = $3',
+      [estado_final, observaciones, equipo_id],
+    );
 
-		await client.query("COMMIT");
-	} catch (dbError) {
-		await client.query("ROLLBACK");
-		client.release();
-		console.error(dbError);
-		return res
-			.status(400)
-			.json({ error: dbError.message || "Error al guardar en BD" });
-	}
+    await client.query('COMMIT');
+  } catch (dbError) {
+    await client.query('ROLLBACK');
+    client.release();
+    console.error(dbError);
+    return res
+      .status(400)
+      .json({ error: dbError.message || 'Error al guardar en BD' });
+  }
 
-	try {
-		const cargadorBool = cargador === "true" || cargador === true;
-		const textoCargador = cargadorBool
-			? "SÍ (Devuelto)"
-			: "NO (Falta cargador)";
-		const colorEstado = estado_final === "operativo" ? "#16a34a" : "#dc2626";
+  try {
+    const cargadorBool = cargador === 'true' || cargador === true;
+    const textoCargador = cargadorBool
+      ? 'SÍ (Devuelto)'
+      : 'NO (Falta cargador)';
+    const colorEstado = estado_final === 'operativo' ? '#16a34a' : '#dc2626';
 
-		const htmlTemplate = `
+    const htmlTemplate = `
     <!DOCTYPE html>
     <html>
     <head><style>body { font-family: 'Segoe UI', sans-serif; background-color: #f3f4f6; }</style></head>
@@ -333,45 +342,45 @@ const registrarDevolucionConCorreo = async (req, res) => {
     </html>
     `;
 
-		const mailOptions = {
-			from: `"SISTEMA GTH" <${process.env.EMAIL_USER}>`,
-			to: destinatario,
-			subject: `🔄 Devolución Registrada: ${tipoEquipo}`,
-			html: htmlTemplate,
-			attachments: [
-				{
-					filename: "Constancia_Devolucion.pdf",
-					content: archivoPDF.buffer,
-				},
-				{
-					filename: "logo_gruposp.png",
-					path: path.join(__dirname, "../assets/logo_gruposp.png"),
-					cid: "logo",
-				},
-			],
-		};
+    const mailOptions = {
+      from: `"SISTEMA GTH" <${process.env.EMAIL_USER}>`,
+      to: destinatario,
+      subject: `🔄 Devolución Registrada: ${tipoEquipo}`,
+      html: htmlTemplate,
+      attachments: [
+        {
+          filename: 'Constancia_Devolucion.pdf',
+          content: archivoPDF.buffer,
+        },
+        {
+          filename: 'logo_gruposp.png',
+          path: path.join(__dirname, '../assets/logo_gruposp.png'),
+          cid: 'logo',
+        },
+      ],
+    };
 
-		await transporter.sendMail(mailOptions);
-		await db.query(
-			"UPDATE movimientos SET correo_enviado = true WHERE id = $1",
-			[movimientoId],
-		);
-		res.status(201).json({ message: "Devolución guardada y correo enviado" });
-	} catch (mailError) {
-		console.error("Error envío correo:", mailError);
-		res.status(201).json({
-			message: "Guardado, pero falló el envío de correo.",
-			warning: true,
-		});
-	} finally {
-		if (client) client.release();
-	}
+    await transporter.sendMail(mailOptions);
+    await db.query(
+      'UPDATE movimientos SET correo_enviado = true WHERE id = $1',
+      [movimientoId],
+    );
+    res.status(201).json({ message: 'Devolución guardada y correo enviado' });
+  } catch (mailError) {
+    console.error('Error envío correo:', mailError);
+    res.status(201).json({
+      message: 'Guardado, pero falló el envío de correo.',
+      warning: true,
+    });
+  } finally {
+    if (client) client.release();
+  }
 };
 
-// --- 5. OBTENER HISTORIAL (CORREGIDO TIEMPO DE USO Y EMPRESAS) ---
+// --- 5. OBTENER HISTORIAL ---
 const obtenerHistorial = async (req, res) => {
-	try {
-		const query = `
+  try {
+    const query = `
         SELECT 
             m.id, m.fecha_movimiento, m.tipo, m.cargador_incluido as cargador, 
             m.observaciones, m.empleado_id, m.equipo_id, 
@@ -382,17 +391,14 @@ const obtenerHistorial = async (req, res) => {
             emp.apellidos as empleado_apellido,
             emp.dni,    
             emp.genero,
-            emp.empresa as empleado_empresa,   -- <--- NUEVO: Empresa del colaborador
+            emp.empresa as empleado_empresa,
             u.nombre as admin_nombre, 
             u.email as admin_correo,
-            u.empresa as admin_empresa,        -- <--- NUEVO: Empresa del administrador
+            u.empresa as admin_empresa,
 
-            -- LÓGICA DE TIEMPO DE USO INTELIGENTE --
             CASE 
-                -- Si es una ENTREGA, calculamos cuánto tiempo lleva o llevó
                 WHEN m.tipo = 'entrega' THEN 
                     AGE(
-                        -- Buscamos si existe una devolución POSTERIOR para este equipo/usuario
                         COALESCE(
                             (SELECT MIN(m2.fecha_movimiento)
                              FROM movimientos m2 
@@ -400,11 +406,10 @@ const obtenerHistorial = async (req, res) => {
                                AND m2.empleado_id = m.empleado_id 
                                AND m2.tipo = 'devolucion' 
                                AND m2.fecha_movimiento > m.fecha_movimiento),
-                            NOW() -- Si no hay devolución, calculamos hasta HOY
+                            NOW()
                         ),
                         m.fecha_movimiento
                     )
-                -- Si es DEVOLUCIÓN, lo dejamos vacío (NULL) como pediste
                 ELSE NULL 
             END as tiempo_uso
 
@@ -414,54 +419,54 @@ const obtenerHistorial = async (req, res) => {
         LEFT JOIN usuarios_admin u ON m.registrado_por_id = u.id
         ORDER BY m.fecha_movimiento DESC
     `;
-		const response = await db.query(query);
-		res.json(response.rows);
-	} catch (error) {
-		console.error(error);
-		res.status(500).json({ error: "Error al obtener historial" });
-	}
+    const response = await db.query(query);
+    res.json(response.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al obtener historial' });
+  }
 };
 
 // --- 6. SUBIR PDF FIRMADO ---
 const subirPdfFirmado = async (req, res) => {
-	const { id } = req.params;
-	const archivo = req.file;
-	if (!archivo) return res.status(400).json({ error: "No hay archivo" });
+  const { id } = req.params;
+  const archivo = req.file;
+  if (!archivo) return res.status(400).json({ error: 'No hay archivo' });
 
-	try {
-		const url = `/uploads/${archivo.filename}`;
-		await db.query(
-			"UPDATE movimientos SET pdf_firmado_url = $1, firma_valida = true WHERE id = $2",
-			[url, id],
-		);
-		res.json({ message: "Archivo guardado" });
-	} catch (error) {
-		console.error(error);
-		res.status(500).json({ error: "Error BD" });
-	}
+  try {
+    const url = `/uploads/${archivo.filename}`;
+    await db.query(
+      'UPDATE movimientos SET pdf_firmado_url = $1, firma_valida = true WHERE id = $2',
+      [url, id],
+    );
+    res.json({ message: 'Archivo guardado' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error BD' });
+  }
 };
 
 // --- 7. INVALIDAR FIRMA ---
 const invalidarFirma = async (req, res) => {
-	const { id } = req.params;
-	try {
-		await db.query(
-			"UPDATE movimientos SET firma_valida = false WHERE id = $1",
-			[id],
-		);
-		res.json({ message: "Documento invalidado" });
-	} catch (error) {
-		console.error(error);
-		res.status(500).json({ error: "Error al invalidar" });
-	}
+  const { id } = req.params;
+  try {
+    await db.query(
+      'UPDATE movimientos SET firma_valida = false WHERE id = $1',
+      [id],
+    );
+    res.json({ message: 'Documento invalidado' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al invalidar' });
+  }
 };
 
 module.exports = {
-	registrarEntrega,
-	registrarEntregaConCorreo,
-	registrarDevolucion,
-	registrarDevolucionConCorreo,
-	obtenerHistorial,
-	subirPdfFirmado,
-	invalidarFirma,
+  registrarEntrega,
+  registrarEntregaConCorreo,
+  registrarDevolucion,
+  registrarDevolucionConCorreo,
+  obtenerHistorial,
+  subirPdfFirmado,
+  invalidarFirma,
 };

@@ -6,7 +6,6 @@ import {
   FaPlus,
   FaEye,
   FaEdit,
-  FaTrash,
   FaLaptop,
   FaCalendarAlt,
   FaBarcode,
@@ -14,12 +13,13 @@ import {
   FaSearch,
   FaChevronLeft,
   FaChevronRight,
-  FaUserShield,
   FaExclamationTriangle,
-  FaBan, // <-- Agregado para Dar de Baja
-  FaUndo, // <-- Agregado para Reactivar
-  FaTimes, // <-- Agregado para modal
-  FaCheck, // <-- Agregado para modal
+  FaBan,
+  FaUndo,
+  FaTimes,
+  FaCheck,
+  FaHandshake,
+  FaBuilding,
 } from 'react-icons/fa';
 import Modal from '../../components/Modal/Modal';
 import AddEquipoForm from './AddEquipoForm';
@@ -29,7 +29,6 @@ const Equipos = () => {
   const [equipos, setEquipos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-
   const [userRole, setUserRole] = useState(null);
 
   // Paginación
@@ -38,16 +37,15 @@ const Equipos = () => {
 
   // Modales
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // Modal confirmación de baja
-
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [modalType, setModalType] = useState('specs');
 
   // Selección
   const [selectedEquipo, setSelectedEquipo] = useState(null);
   const [equipoToEdit, setEquipoToEdit] = useState(null);
-  const [equipoToDelete, setEquipoToDelete] = useState(null); // Equipo a dar de baja
+  const [equipoToDelete, setEquipoToDelete] = useState(null);
 
-  // 1. CARGAR DATOS DEL PERFIL Y EQUIPOS
+  // 1. CARGAR DATOS
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -55,7 +53,6 @@ const Equipos = () => {
       setUserRole(Number(resPerfil.data.rol_id));
 
       const resEquipos = await api.get('/equipos');
-      // ORDENAMIENTO: Primero los activos, luego inactivos (igual que usuarios)
       const sorted = resEquipos.data.sort((a, b) => {
         if (a.activo === b.activo) return b.id - a.id;
         return a.activo === false ? 1 : -1;
@@ -91,13 +88,19 @@ const Equipos = () => {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return <span className='no-date'>-</span>;
+    if (!dateString) return '-'; // Quitamos el span para que el excel no se rompa si se usa esta funcion ahi, aunque en excel usamos string directo
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
     });
+  };
+
+  // Renderizado visual en tabla (con span si es necesario)
+  const renderDate = (dateString) => {
+    if (!dateString) return <span className='no-date'>-</span>;
+    return formatDate(dateString);
   };
 
   const filteredEquipos = equipos.filter((item) => {
@@ -116,34 +119,41 @@ const Equipos = () => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
+  // --- EXPORTAR EXCEL ACTUALIZADO ---
   const exportarExcel = () => {
     const dataParaExcel = filteredEquipos.map((e) => ({
       ID: e.id,
       Marca: e.marca,
       Modelo: e.modelo,
       Serie: e.serie,
-      // Refleja si está INACTIVO en el excel
       Estado: e.activo !== false ? e.estado.toUpperCase() : 'INACTIVO',
-      'Fecha Compra': e.fecha_compra
+      Observaciones: e.ultima_observacion || 'Ninguna',
+
+      // --- DATOS DE FECHA Y ANTIGÜEDAD ---
+      'Fecha Compra/Inicio': e.fecha_compra
         ? new Date(e.fecha_compra).toLocaleDateString()
         : '-',
       Antigüedad: e.antiguedad_obj
         ? `${e.antiguedad_obj.years || 0}a ${e.antiguedad_obj.months || 0}m`
         : 'Nuevo',
-      'Última Observación': e.ultima_observacion || '-',
+
+      // --- DATOS DE PROVEEDOR (NUEVO) ---
+      Condición: e.proveedor_id ? 'ALQUILADO' : 'PROPIO',
+      Proveedor: e.nombre_proveedor || '-',
+      'Teléfono Prov.': e.telefono_proveedor || '-',
+      'Fin Contrato': e.fecha_fin_alquiler
+        ? new Date(e.fecha_fin_alquiler).toLocaleDateString()
+        : '-',
+
+      // --- AUDITORÍA ---
       'Registrado Por': e.creador_nombre || 'Sistema',
-      'Empresa de Registro': e.creador_empresa || '-',
       'Fecha Registro': new Date(e.created_at).toLocaleString(),
-      'Modificado Por': e.modificador_nombre || '-',
-      'Fecha Modificación': e.fecha_modificacion_admin
-        ? new Date(e.fecha_modificacion_admin).toLocaleString()
-        : 'Sin cambios',
     }));
 
     const ws = XLSX.utils.json_to_sheet(dataParaExcel);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
-    XLSX.writeFile(wb, 'Reporte_Equipos_Completo.xlsx');
+    XLSX.utils.book_append_sheet(wb, ws, 'Inventario_Completo');
+    XLSX.writeFile(wb, 'Reporte_Equipos_Detallado.xlsx');
   };
 
   // --- MANEJO DE ACCIONES ---
@@ -163,13 +173,11 @@ const Equipos = () => {
     setIsModalOpen(true);
   };
 
-  // Muestra el modal de confirmación de baja
   const confirmDelete = (equipo) => {
     setEquipoToDelete(equipo);
     setIsDeleteModalOpen(true);
   };
 
-  // Ejecuta la baja lógica (Pasa a inactivo)
   const executeDelete = async () => {
     if (!equipoToDelete) return;
     try {
@@ -183,7 +191,6 @@ const Equipos = () => {
     }
   };
 
-  // Ejecuta la reactivación (Pasa a activo)
   const handleActivate = async (equipo) => {
     try {
       await api.put(`/equipos/${equipo.id}/activate`);
@@ -275,7 +282,7 @@ const Equipos = () => {
                   </td>
                   <td>
                     <div className='email-cell'>
-                      <FaCalendarAlt /> {formatDate(item.fecha_compra)}
+                      <FaCalendarAlt /> {renderDate(item.fecha_compra)}
                     </div>
                   </td>
                   <td>
@@ -304,7 +311,6 @@ const Equipos = () => {
                     </div>
                   </td>
                   <td>
-                    {/* Si está inactivo se pinta como malogrado o inactivo */}
                     <span
                       className={`status-badge ${item.activo === false ? 'malogrado' : item.estado}`}
                     >
@@ -320,8 +326,6 @@ const Equipos = () => {
                       >
                         <FaEye />
                       </button>
-
-                      {/* --- LÓGICA DE BOTONES SEGÚN ESTADO --- */}
                       {item.activo !== false ? (
                         <>
                           <button
@@ -331,8 +335,6 @@ const Equipos = () => {
                           >
                             <FaEdit />
                           </button>
-
-                          {/* Solo Superadmin (1) ve botón de baja */}
                           {userRole === 1 && (
                             <button
                               className='action-btn delete'
@@ -344,7 +346,6 @@ const Equipos = () => {
                           )}
                         </>
                       ) : (
-                        /* Si está INACTIVO, Solo Superadmin puede reactivar */
                         userRole === 1 && (
                           <button
                             className='action-btn activate'
@@ -379,21 +380,16 @@ const Equipos = () => {
               >
                 <FaChevronLeft size={12} />
               </button>
-              {[...Array(totalPages)].map((_, i) => {
-                const pageNumber = i + 1;
-                const isActive = currentPage === pageNumber;
-                return (
-                  <button
-                    key={pageNumber}
-                    onClick={() => paginate(pageNumber)}
-                    className={isActive ? 'active' : ''}
-                    disabled={isActive}
-                    style={isActive ? { opacity: 1, cursor: 'default' } : {}}
-                  >
-                    {pageNumber}
-                  </button>
-                );
-              })}
+              {[...Array(totalPages)].map((_, i) => (
+                <button
+                  key={i + 1}
+                  onClick={() => paginate(i + 1)}
+                  className={currentPage === i + 1 ? 'active' : ''}
+                  disabled={currentPage === i + 1}
+                >
+                  {i + 1}
+                </button>
+              ))}
               <button
                 onClick={() => paginate(currentPage + 1)}
                 disabled={currentPage === totalPages}
@@ -405,7 +401,6 @@ const Equipos = () => {
         )}
       </div>
 
-      {/* --- MODAL FICHA TÉCNICA Y FORMULARIO --- */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -428,7 +423,10 @@ const Equipos = () => {
                   <h3>
                     {selectedEquipo.marca} {selectedEquipo.modelo}
                   </h3>
-                  <div className='badge-wrapper'>
+                  <div
+                    className='badge-wrapper'
+                    style={{ display: 'flex', gap: '8px', marginTop: '8px' }}
+                  >
                     <span
                       className={`status-badge ${selectedEquipo.activo === false ? 'malogrado' : selectedEquipo.estado}`}
                     >
@@ -436,7 +434,37 @@ const Equipos = () => {
                         ? 'INACTIVO'
                         : selectedEquipo.estado}
                     </span>
+
+                    {selectedEquipo.proveedor_id ? (
+                      <span
+                        className='ownership-badge rented'
+                        title={`Proveedor: ${selectedEquipo.nombre_proveedor || 'Desconocido'} \nFin Contrato: ${selectedEquipo.fecha_fin_alquiler ? formatDate(selectedEquipo.fecha_fin_alquiler) : 'Indefinido'}`}
+                      >
+                        <FaHandshake /> ALQUILADO
+                      </span>
+                    ) : (
+                      <span
+                        className='ownership-badge owned'
+                        title='Activo fijo de la empresa'
+                      >
+                        <FaBuilding /> PROPIO
+                      </span>
+                    )}
                   </div>
+
+                  {selectedEquipo.proveedor_id && (
+                    <small
+                      style={{
+                        display: 'block',
+                        marginTop: '6px',
+                        color: '#64748b',
+                        fontSize: '0.85rem',
+                      }}
+                    >
+                      Proveedor:{' '}
+                      <strong>{selectedEquipo.nombre_proveedor}</strong>
+                    </small>
+                  )}
                 </div>
               </div>
 
@@ -444,7 +472,7 @@ const Equipos = () => {
                 selectedEquipo.ultima_observacion && (
                   <div className='observation-alert'>
                     <h5>
-                      <FaExclamationTriangle /> Reporte de Devolución
+                      <FaExclamationTriangle /> Observaciones / Estado
                     </h5>
                     <p>"{selectedEquipo.ultima_observacion}"</p>
                   </div>
@@ -514,7 +542,6 @@ const Equipos = () => {
         )}
       </Modal>
 
-      {/* --- NUEVO MODAL DE CONFIRMACIÓN DE BAJA --- */}
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
