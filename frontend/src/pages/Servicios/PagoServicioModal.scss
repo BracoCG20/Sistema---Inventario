@@ -6,7 +6,7 @@
   gap: 1.5rem;
   padding-bottom: 1rem;
 
-  // Banner de alertas (para PDF API)
+  // Banner Alerta
   .alert-box {
     display: flex;
     justify-content: space-between;
@@ -15,13 +15,11 @@
     border-radius: 8px;
     margin-bottom: 15px;
     font-size: 0.9rem;
-
     &.success {
       background: #ecfdf5;
       border: 1px solid #10b981;
       color: #047857;
     }
-
     .link-view {
       text-decoration: underline;
       color: inherit;
@@ -30,7 +28,7 @@
     }
   }
 
-  // --- BANNER DE CREDENCIALES ---
+  // Banner Credenciales
   .credentials-banner {
     background: #f3f0ff;
     padding: 1rem 1.5rem;
@@ -76,7 +74,6 @@
       font-weight: 600;
       font-size: 0.85rem;
       transition: background 0.2s;
-
       &:hover {
         background: #4338ca;
       }
@@ -87,14 +84,13 @@
     }
   }
 
-  // --- TARJETAS GENERALES ---
+  // Tarjetas
   .modal-card {
     background: #ffffff;
     border-radius: 12px;
     border: 1px solid #e2e8f0;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
     overflow: visible;
-
     &.padding-content {
       padding: 1.5rem;
     }
@@ -112,7 +108,7 @@
       }
     }
 
-    // Input file original
+    // Input File Custom
     .file-input-custom {
       padding: 8px;
       background: #f8fafc;
@@ -122,7 +118,6 @@
       border-radius: 8px;
       color: #64748b;
       font-size: 0.85rem;
-
       &::file-selector-button {
         background-color: #fff;
         color: #334155;
@@ -140,13 +135,13 @@
       }
     }
 
-    // --- NUEVA TARJETA DE PREVISUALIZACIÓN ---
+    // Preview File Box (Formulario)
     .file-preview-box {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 10px 15px;
-      background: #eff6ff; // Fondo azul muy claro
+      background: #eff6ff;
       border: 1px solid #bfdbfe;
       border-radius: 8px;
 
@@ -154,7 +149,6 @@
         display: flex;
         align-items: center;
         gap: 12px;
-
         .icon {
           font-size: 1.5rem;
           &.pdf {
@@ -164,7 +158,6 @@
             color: #3b82f6;
           }
         }
-
         .details {
           display: flex;
           flex-direction: column;
@@ -183,11 +176,9 @@
           }
         }
       }
-
       .file-actions {
         display: flex;
         gap: 8px;
-
         .action-btn {
           width: 32px;
           height: 32px;
@@ -199,7 +190,6 @@
           cursor: pointer;
           transition: all 0.2s;
           color: white;
-
           &.view {
             background: #3b82f6;
             &:hover {
@@ -223,7 +213,7 @@
     }
   }
 
-  // --- TABLA DE HISTORIAL ---
+  // --- HISTORIAL ---
   .history-container {
     .history-header {
       margin: 0 0 1rem 0;
@@ -237,7 +227,6 @@
         color: v.$primary;
       }
     }
-
     .empty-state {
       text-align: center;
       padding: 2.5rem;
@@ -254,12 +243,10 @@
       border-radius: 12px;
       background: white;
       overflow: hidden;
-
       table {
         width: 100%;
         border-collapse: collapse;
         font-size: 0.85rem;
-
         thead {
           background: #eef2ff;
           th {
@@ -273,7 +260,6 @@
             }
           }
         }
-
         tbody tr {
           border-bottom: 1px solid #f1f5f9;
           &:last-child {
@@ -282,7 +268,6 @@
           &:hover {
             background-color: #f8fafc;
           }
-
           td {
             padding: 12px 16px;
             vertical-align: middle;
@@ -307,26 +292,39 @@
         }
       }
     }
-  }
 
-  // --- BOTÓN VER PDF EN TABLA ---
-  .btn-ver-pdf {
-    background: #fee2e2;
-    color: #ef4444;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 600;
-    font-size: 0.8rem;
-    transition: all 0.2s;
+    // --- ACCIONES EN LA TABLA ---
+    .table-actions {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
 
-    &:hover {
-      background: #fecaca;
-      color: #dc2626;
+      .btn-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: white;
+        font-size: 0.8rem;
+
+        &.view {
+          background: #6366f1; // Índigo suave
+          &:hover {
+            background: #4f46e5;
+          }
+        }
+        &.download {
+          background: #10b981; // Verde esmeralda
+          &:hover {
+            background: #059669;
+          }
+        }
+      }
     }
   }
 }

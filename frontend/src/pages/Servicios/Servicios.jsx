@@ -91,7 +91,9 @@ const Servicios = () => {
   };
 
   const formatMoney = (amount, currency) => {
-    const symbol = currency === 'PEN' ? 'S/' : '$';
+    let symbol = '$';
+    if (currency === 'PEN') symbol = 'S/';
+    if (currency === 'EUR') symbol = '€'; // <--- Nueva línea para Euro
     return `${symbol} ${Number(amount).toFixed(2)}`;
   };
 

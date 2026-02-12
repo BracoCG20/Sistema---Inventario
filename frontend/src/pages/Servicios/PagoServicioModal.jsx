@@ -11,10 +11,10 @@ import {
   FaExternalLinkAlt,
   FaSync,
   FaCheckCircle,
-  FaEye, // <--- Nuevo
-  FaDownload, // <--- Nuevo
-  FaTrashAlt, // <--- Nuevo
-  FaFileImage, // <--- Nuevo
+  FaEye, // Icono Ver
+  FaDownload, // Icono Descargar
+  FaTrashAlt,
+  FaFileImage,
 } from 'react-icons/fa';
 
 import './AddServicioForm.scss';
@@ -36,12 +36,12 @@ const PagoServicioModal = ({ servicio, onClose }) => {
 
   const [pdfDetectado, setPdfDetectado] = useState(null);
   const [archivo, setArchivo] = useState(null);
-  // Estado para la URL temporal de previsualización
   const [previewUrl, setPreviewUrl] = useState(null);
 
   const monedaOptions = [
     { value: 'USD', label: 'USD' },
     { value: 'PEN', label: 'PEN' },
+    { value: 'EUR', label: 'EUR' },
   ];
 
   const fetchPagos = async () => {
@@ -66,26 +66,26 @@ const PagoServicioModal = ({ servicio, onClose }) => {
     }
   }, [servicio]);
 
-  // Limpiar la URL del objeto cuando el componente se desmonte o cambie el archivo
   useEffect(() => {
     return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
+
+  // --- Helpers ---
+  const getUrlCompleta = (url) => {
+    if (!url) return '';
+    return url.startsWith('http') ? url : `http://localhost:4000${url}`;
+  };
 
   const handleSyncInvoice = async () => {
     setSyncing(true);
     setPdfDetectado(null);
-
     try {
       const res = await api.post(`/servicios/${servicio.id}/sync-invoice`);
       const data = res.data;
-
       if (data.conectado) {
         toast.success('¡Datos sincronizados correctamente!');
-
         if (data.datos) {
           setFormData((prev) => ({
             ...prev,
@@ -97,13 +97,12 @@ const PagoServicioModal = ({ servicio, onClose }) => {
             periodo_pagado: data.datos.periodo || prev.periodo_pagado,
           }));
         }
-
         if (data.pdf_url) {
           setPdfDetectado(data.pdf_url);
           toast.info('Factura PDF encontrada.');
         } else {
           toast.info(
-            "Metricool no entrega el PDF vía API. Usa 'Ir al Portal' para descargarlo.",
+            "Metricool no entrega el PDF vía API. Usa 'Ir al Portal'.",
             { autoClose: 5000 },
           );
         }
@@ -131,7 +130,6 @@ const PagoServicioModal = ({ servicio, onClose }) => {
     const file = e.target.files[0];
     if (file) {
       setArchivo(file);
-      // Creamos una URL temporal para ver el archivo localmente
       const objectUrl = URL.createObjectURL(file);
       setPreviewUrl(objectUrl);
     }
@@ -140,9 +138,7 @@ const PagoServicioModal = ({ servicio, onClose }) => {
   const handleRemoveFile = () => {
     setArchivo(null);
     setPreviewUrl(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSubmit = async (e) => {
@@ -153,15 +149,11 @@ const PagoServicioModal = ({ servicio, onClose }) => {
 
     setLoading(true);
     const toastId = toast.loading('Registrando pago...');
-
     const form = new FormData();
     Object.keys(formData).forEach((key) => form.append(key, formData[key]));
 
-    if (archivo) {
-      form.append('comprobante', archivo);
-    } else if (pdfDetectado) {
-      form.append('pdf_url_externa', pdfDetectado);
-    }
+    if (archivo) form.append('comprobante', archivo);
+    else if (pdfDetectado) form.append('pdf_url_externa', pdfDetectado);
 
     try {
       await api.post(`/servicios/${servicio.id}/pagos`, form, {
@@ -174,7 +166,7 @@ const PagoServicioModal = ({ servicio, onClose }) => {
         autoClose: 2000,
       });
 
-      handleRemoveFile(); // Limpia archivo y preview
+      handleRemoveFile();
       setPdfDetectado(null);
       setFormData((prev) => ({ ...prev, periodo_pagado: '' }));
       fetchPagos();
@@ -188,11 +180,6 @@ const PagoServicioModal = ({ servicio, onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const verComprobante = (url) => {
-    const link = url.startsWith('http') ? url : `http://localhost:4000${url}`;
-    window.open(link, '_blank');
   };
 
   const formatDate = (dateString) => {
@@ -224,59 +211,22 @@ const PagoServicioModal = ({ servicio, onClose }) => {
 
   return (
     <div className='pago-modal-container'>
-      {/* --- BANNER DE ACCESO --- */}
-      {servicio.usuario_acceso && (
-        <div className='credentials-banner'>
-          <div className='creds-info'>
-            <h4>
-              <FaKey /> Credenciales de Acceso
-            </h4>
-            <div className='user-detail'>
-              <strong>Usuario:</strong> {servicio.usuario_acceso}
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            {servicio.api_key && (
-              <button
-                onClick={handleSyncInvoice}
-                disabled={syncing}
-                className='btn-portal'
-                style={{ background: '#0ea5e9' }}
-                title='Sincronizar datos de facturación'
-              >
-                {syncing ? <FaSync className='fa-spin' /> : <FaSync />}
-                {syncing ? ' Buscando...' : ' Sincronizar Datos'}
-              </button>
-            )}
-
-            <button
-              onClick={() => window.open(servicio.url_acceso, '_blank')}
-              className='btn-portal'
-            >
-              Ir al Portal <FaExternalLinkAlt size={12} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* --- FORMULARIO --- */}
+      {/* FORMULARIO */}
       <div className='modal-card padding-content'>
         <h4 className='section-title'>
           <FaCalendarCheck /> Registrar Nuevo Pago
         </h4>
-
         <form
           className='equipo-form'
           onSubmit={handleSubmit}
           style={{ padding: 0, maxHeight: 'none', overflow: 'visible' }}
         >
-          {/* AVISO DE PDF DETECTADO API */}
           {pdfDetectado && (
             <div className='alert-box success'>
               <div
                 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
               >
-                <FaCheckCircle /> PDF detectado automáticamente vía API.
+                <FaCheckCircle /> PDF detectado.
               </div>
               <a
                 href={pdfDetectado}
@@ -351,11 +301,8 @@ const PagoServicioModal = ({ servicio, onClose }) => {
             </div>
           </div>
 
-          {/* --- SECCIÓN DE SUBIDA DE ARCHIVO CON PREVISUALIZACIÓN --- */}
           <div className='input-group'>
             <label>Comprobante / Invoice (PDF o Imagen)</label>
-
-            {/* Si NO hay archivo seleccionado NI detectado, mostramos el input */}
             {!archivo && !pdfDetectado && (
               <input
                 type='file'
@@ -365,8 +312,6 @@ const PagoServicioModal = ({ servicio, onClose }) => {
                 className='file-input-custom'
               />
             )}
-
-            {/* Si HAY un archivo seleccionado manualmente, mostramos la tarjeta de vista previa */}
             {archivo && (
               <div className='file-preview-box'>
                 <div className='file-info'>
@@ -383,7 +328,6 @@ const PagoServicioModal = ({ servicio, onClose }) => {
                   </div>
                 </div>
                 <div className='file-actions'>
-                  {/* Botón Ver */}
                   <button
                     type='button'
                     className='action-btn view'
@@ -392,8 +336,6 @@ const PagoServicioModal = ({ servicio, onClose }) => {
                   >
                     <FaEye />
                   </button>
-
-                  {/* Botón Descargar (usando el blob local) */}
                   <a
                     href={previewUrl}
                     download={archivo.name}
@@ -402,8 +344,6 @@ const PagoServicioModal = ({ servicio, onClose }) => {
                   >
                     <FaDownload />
                   </a>
-
-                  {/* Botón Eliminar */}
                   <button
                     type='button'
                     className='action-btn remove'
@@ -415,12 +355,11 @@ const PagoServicioModal = ({ servicio, onClose }) => {
                 </div>
               </div>
             )}
-
             {pdfDetectado && (
               <small
                 style={{ color: '#059669', marginTop: '5px', display: 'block' }}
               >
-                * Se usará el PDF importado automáticamente.
+                * Se usará el PDF importado.
               </small>
             )}
           </div>
@@ -436,12 +375,11 @@ const PagoServicioModal = ({ servicio, onClose }) => {
         </form>
       </div>
 
-      {/* --- HISTORIAL --- */}
+      {/* --- HISTORIAL DE PAGOS (ACTUALIZADO) --- */}
       <div className='history-container'>
         <h4 className='history-header'>
           <FaHistory /> Historial de Pagos
         </h4>
-
         {pagos.length === 0 ? (
           <div className='empty-state'>
             Aún no hay pagos registrados para este servicio.
@@ -451,34 +389,53 @@ const PagoServicioModal = ({ servicio, onClose }) => {
             <table>
               <thead>
                 <tr>
-                  <th>Fecha</th>
+                  <th>Fecha de Pago</th>
                   <th>Período</th>
                   <th>Monto</th>
-                  <th className='center'>Voucher</th>
+                  <th className='center'>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {pagos.map((pago) => (
-                  <tr key={pago.id}>
-                    <td className='date'>{formatDate(pago.fecha_pago)}</td>
-                    <td className='period'>{pago.periodo_pagado}</td>
-                    <td className='amount'>
-                      {pago.moneda} {Number(pago.monto_pagado).toFixed(2)}
-                    </td>
-                    <td className='center'>
-                      {pago.comprobante_url ? (
-                        <button
-                          onClick={() => verComprobante(pago.comprobante_url)}
-                          className='btn-ver-pdf'
-                        >
-                          <FaFilePdf /> Ver
-                        </button>
-                      ) : (
-                        <span style={{ color: '#cbd5e1' }}>-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {pagos.map((pago) => {
+                  const urlCompleta = getUrlCompleta(pago.comprobante_url);
+                  return (
+                    <tr key={pago.id}>
+                      <td className='date'>{formatDate(pago.fecha_pago)}</td>
+                      <td className='period'>{pago.periodo_pagado}</td>
+                      <td className='amount'>
+                        {pago.moneda} {Number(pago.monto_pagado).toFixed(2)}
+                      </td>
+                      <td className='center'>
+                        {pago.comprobante_url ? (
+                          <div className='table-actions'>
+                            {/* Botón OJO (Ver) */}
+                            <button
+                              onClick={() => window.open(urlCompleta, '_blank')}
+                              className='btn-icon view'
+                              title='Ver Comprobante'
+                            >
+                              <FaEye />
+                            </button>
+
+                            {/* Botón DESCARGAR */}
+                            <a
+                              href={urlCompleta}
+                              download
+                              target='_blank'
+                              rel='noreferrer'
+                              className='btn-icon download'
+                              title='Descargar Comprobante'
+                            >
+                              <FaDownload />
+                            </a>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#cbd5e1' }}>-</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

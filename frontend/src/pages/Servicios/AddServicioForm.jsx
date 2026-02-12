@@ -31,12 +31,18 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
     licencias_totales: 0,
     licencias_usadas: 0,
     estado: 'Activo',
+    // Credenciales
+    api_key: '', // Aunque lo ocultamos en la vista anterior, lo mantengo en el estado por si acaso
+    url_acceso: '',
+    usuario_acceso: '',
+    password_acceso: '',
   });
 
+  // --- ACTUALIZACIÓN: OPCIONES CON SÍMBOLOS ---
   const monedaOptions = [
-    { value: 'USD', label: 'USD' },
-    { value: 'PEN', label: 'PEN' },
-    { value: 'EUR', label: 'EUR' },
+    { value: 'USD', label: 'USD ($)' },
+    { value: 'PEN', label: 'PEN (S/)' },
+    { value: 'EUR', label: 'EUR (€)' }, // Agregado Euro con símbolo
   ];
 
   const frecuenciaOptions = [
@@ -90,6 +96,11 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
         licencias_totales: servicioToEdit.licencias_totales || 0,
         licencias_usadas: servicioToEdit.licencias_usadas || 0,
         estado: servicioToEdit.estado || 'Activo',
+        // Cargar credenciales
+        url_acceso: servicioToEdit.url_acceso || '',
+        usuario_acceso: servicioToEdit.usuario_acceso || '',
+        password_acceso: '', // Contraseña vacía por seguridad al editar
+        api_key: servicioToEdit.api_key || '',
       });
     }
   }, [servicioToEdit]);
@@ -183,9 +194,10 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
       onSubmit={handleSubmit}
     >
       {/* SECCIÓN 1: DATOS BÁSICOS */}
+      <h4 className='form-section-title'>Información General</h4>
       <div className='form-row-all'>
         <div className='input-group'>
-          <label>Nombre del Servicio*</label>
+          <label>Nombre del Servicio *</label>
           <input
             name='nombre'
             value={formData.nombre}
@@ -207,12 +219,15 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
         </div>
       </div>
 
+      <hr style={{ margin: '0.2rem 0', borderTop: '1px solid #f1f5f9' }} />
+
       {/* SECCIÓN 2: FACTURACIÓN */}
+      <h4 className='form-section-title'>Facturación</h4>
       <div className='form-row'>
         <div className='input-group'>
           <label>Precio y Moneda</label>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <div style={{ width: '100px' }}>
+            <div style={{ width: '120px' }}>
               <Select
                 name='moneda'
                 options={monedaOptions}
@@ -290,9 +305,10 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
         <div className='input-group'></div>
       </div>
 
-      <hr style={{ margin: '0.5rem', borderTop: '1px solid #f1f5f9' }} />
+      <hr style={{ margin: '0.2rem 0', borderTop: '1px solid #f1f5f9' }} />
 
       {/* SECCIÓN 3: EMPRESAS Y LICENCIAS */}
+      <h4 className='form-section-title'>Asignación</h4>
       <div className='form-row'>
         <div className='input-group'>
           <label>Empresa que Factura</label>
@@ -348,6 +364,8 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
           />
         </div>
       </div>
+
+      <hr style={{ margin: '0.2rem 0', borderTop: '1px solid #f1f5f9' }} />
 
       <button
         type='submit'
