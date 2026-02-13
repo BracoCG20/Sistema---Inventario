@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import api from "../../services/api";
 import * as XLSX from "xlsx";
 import { toast } from "react-toastify";
+import Select from "react-select"; // <-- IMPORTACIÓN DE REACT-SELECT
 import {
 	FaPlus,
 	FaUserTie,
@@ -25,10 +26,16 @@ import "./Usuarios.scss";
 
 const Usuarios = () => {
 	const [usuarios, setUsuarios] = useState([]);
+	const [empresasOptions, setEmpresasOptions] = useState([]); // <-- ESTADO PARA EMPRESAS
 	const [loading, setLoading] = useState(true);
-	const [searchTerm, setSearchTerm] = useState("");
 
-	// --- LÓGICA DE ROL IDÉNTICA A CONFIGURACION Y EQUIPOS ---
+	// Filtros
+	const [searchTerm, setSearchTerm] = useState("");
+	const [filterEmpresa, setFilterEmpresa] = useState({
+		value: "todas",
+		label: "Todas las Empresas",
+	}); // <-- FILTRO DE EMPRESA
+
 	const [userRole, setUserRole] = useState(null);
 
 	// Paginación
@@ -43,14 +50,33 @@ const Usuarios = () => {
 	const [usuarioToEdit, setUsuarioToEdit] = useState(null);
 	const [usuarioToDelete, setUsuarioToDelete] = useState(null);
 
-	// 1. CARGAR DATOS (PERFIL PARA ROL + LISTA DE USUARIOS)
+	// 1. CARGAR DATOS
 	const fetchData = async () => {
 		setLoading(true);
 		try {
-			// Obtenemos el perfil para validar el rol (Igual que en Configuracion.jsx)
+			// Obtenemos perfil
 			const resPerfil = await api.get("/auth/perfil");
-			setUserRole(Number(resPerfil.data.rol_id)); // Convertimos a número para comparar con 1
+			setUserRole(Number(resPerfil.data.rol_id));
 
+			// Obtenemos lista de empresas (para el filtro)
+			try {
+				const resEmpresas = await api.get("/empresas");
+				const options = resEmpresas.data
+					.filter((e) => e.estado === "Activo" || e.activo)
+					.map((e) => ({
+						value: e.nombre || e.razon_social,
+						label: e.nombre || e.razon_social,
+					}));
+				setEmpresasOptions([
+					{ value: "todas", label: "Todas las Empresas" },
+					...options,
+				]);
+			} catch (err) {
+				console.log("Error cargando empresas para el filtro", err);
+				setEmpresasOptions([{ value: "todas", label: "Todas las Empresas" }]);
+			}
+
+			// Obtenemos usuarios
 			const res = await api.get("/usuarios");
 			const sorted = res.data.sort((a, b) => {
 				if (a.activo === b.activo) return a.nombres.localeCompare(b.nombres);
@@ -69,17 +95,28 @@ const Usuarios = () => {
 		fetchData();
 	}, []);
 
+	// Reiniciar a la página 1 cuando cambia algún filtro
 	useEffect(() => {
 		setCurrentPage(1);
-	}, [searchTerm]);
+	}, [searchTerm, filterEmpresa]);
 
+	// --- LÓGICA DE FILTRADO (Buscador + Empresa) ---
 	const filteredUsuarios = usuarios.filter((u) => {
+		// Filtro de texto
 		const term = searchTerm.toLowerCase();
-		return (
+		const matchesSearch =
 			u.nombres.toLowerCase().includes(term) ||
 			u.apellidos.toLowerCase().includes(term) ||
-			u.dni.includes(term)
-		);
+			(u.dni && u.dni.includes(term));
+
+		// Filtro por empresa
+		let matchesEmpresa = true;
+		if (filterEmpresa.value !== "todas") {
+			// Comparamos el valor del select con el nombre de la empresa del usuario
+			matchesEmpresa = (u.empresa || "") === filterEmpresa.value;
+		}
+
+		return matchesSearch && matchesEmpresa;
 	});
 
 	const indexOfLastItem = currentPage * itemsPerPage;
@@ -151,6 +188,55 @@ const Usuarios = () => {
 		fetchData();
 	};
 
+	// Estilos personalizados para React-Select en la barra de filtros
+	const customFilterStyles = {
+		control: (provided, state) => ({
+			...provided,
+			backgroundColor: "white",
+			border: state.isFocused ? "1px solid #7c3aed" : "1px solid #e2e8f0",
+			borderRadius: "12px",
+			padding: "2px 6px",
+			minHeight: "46px",
+			boxShadow: state.isFocused ? "0 0 0 3px rgba(124, 58, 237, 0.1)" : "none",
+			cursor: "pointer",
+			"&:hover": {
+				borderColor: "#7c3aed",
+			},
+		}),
+		indicatorSeparator: () => ({ display: "none" }),
+		singleValue: (provided) => ({
+			...provided,
+			color: "#1e293b",
+			fontWeight: "500",
+			fontSize: "0.95rem",
+		}),
+		placeholder: (provided) => ({
+			...provided,
+			color: "#94a3b8",
+			fontSize: "0.95rem",
+		}),
+		menu: (provided) => ({
+			...provided,
+			borderRadius: "12px",
+			overflow: "hidden",
+			zIndex: 9999,
+			border: "1px solid #e2e8f0",
+			boxShadow: "0 10px 25px rgba(0,0,0,0.05)",
+		}),
+		option: (provided, state) => ({
+			...provided,
+			backgroundColor: state.isSelected
+				? "#7c3aed"
+				: state.isFocused
+					? "#f8fafc"
+					: "white",
+			color: state.isSelected ? "white" : "#334155",
+			cursor: "pointer",
+			fontSize: "0.9rem",
+			padding: "10px 15px",
+		}),
+	};
+
 	if (loading) return <div className='loading-state'>Cargando...</div>;
 
 	return (
@@ -170,19 +256,35 @@ const Usuarios = () => {
 				</div>
 			</div>
 
-			<div className='search-bar'>
-				<FaSearch color='#94a3b8' />
-				<input
-					type='text'
-					placeholder='Buscar por Nombre o DNI...'
-					value={searchTerm}
-					onChange={(e) => setSearchTerm(e.target.value)}
-				/>
+			{/* --- NUEVA BARRA DE FILTROS --- */}
+			<div className='filters-bar'>
+				<div className='search-input'>
+					<FaSearch color='#94a3b8' />
+					<input
+						type='text'
+						placeholder='Buscar por Nombre o DNI...'
+						value={searchTerm}
+						onChange={(e) => setSearchTerm(e.target.value)}
+					/>
+				</div>
+
+				<div className='condition-filter'>
+					<Select
+						options={empresasOptions}
+						value={filterEmpresa}
+						onChange={setFilterEmpresa}
+						styles={customFilterStyles}
+						isSearchable={true}
+						placeholder='Filtrar por Empresa'
+					/>
+				</div>
 			</div>
 
 			<div className='table-container'>
 				{currentItems.length === 0 ? (
-					<div className='no-data'>No se encontraron colaboradores.</div>
+					<div className='no-data'>
+						No se encontraron colaboradores con los filtros actuales.
+					</div>
 				) : (
 					<table>
 						<thead>
@@ -279,7 +381,6 @@ const Usuarios = () => {
 															<FaEdit />
 														</button>
 
-														{/* RESTRICCIÓN DE ROL: Solo Superadmin (1) ve botón de baja */}
 														{userRole === 1 && (
 															<button
 																className='action-btn delete'
@@ -291,7 +392,6 @@ const Usuarios = () => {
 														)}
 													</>
 												) : (
-													/* Solo Superadmin puede reactivar */
 													userRole === 1 && (
 														<button
 															className='action-btn activate'
@@ -328,7 +428,6 @@ const Usuarios = () => {
 								<FaChevronLeft size={12} />
 							</button>
 
-							{/* PAGINACIÓN NUMÉRICA IGUAL A EQUIPOS */}
 							{[...Array(totalPages)].map((_, i) => {
 								const pageNumber = i + 1;
 								const isActive = currentPage === pageNumber;
@@ -356,7 +455,6 @@ const Usuarios = () => {
 				)}
 			</div>
 
-			{/* MODALES */}
 			<Modal
 				isOpen={isFormModalOpen}
 				onClose={() => setIsFormModalOpen(false)}

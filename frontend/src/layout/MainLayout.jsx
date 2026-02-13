@@ -23,7 +23,7 @@ const MainLayout = () => {
 			</main>
 
 			{/* 3. Botón Flotante (Coméntalo si no tienes el archivo creado aún) */}
-			<WhatsappBtn />
+			{/* <WhatsappBtn /> */}
 		</div>
 	);
 };
