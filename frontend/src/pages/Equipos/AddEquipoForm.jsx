@@ -6,6 +6,7 @@ import {
 	FaExclamationTriangle,
 	FaBuilding,
 	FaHandshake,
+	FaCalendarAlt,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import api from "../../services/api";
@@ -21,15 +22,16 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
 		serie: "",
 		estado: "operativo",
 		fecha_compra: "",
+		empresa: "", // <-- NUEVO CAMPO
 
-		// NUEVOS CAMPOS
-		condicion_equipo: "propio", // 'propio' o 'alquilado'
+		condicion_equipo: "propio",
 		proveedor_id: null,
 		fecha_fin_alquiler: "",
 	});
 
 	const [marcasOptions, setMarcasOptions] = useState([]);
-	const [proveedoresOptions, setProveedoresOptions] = useState([]); // Estado para proveedores
+	const [proveedoresOptions, setProveedoresOptions] = useState([]);
+	const [empresasOptions, setEmpresasOptions] = useState([]); // <-- NUEVO ESTADO
 	const [loadingData, setLoadingData] = useState(false);
 
 	const [specsList, setSpecsList] = useState([
@@ -48,28 +50,39 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
 		{ value: "alquilado", label: "Equipo Alquilado" },
 	];
 
-	// 1. CARGAR DATOS (Marcas y Proveedores)
+	// 1. CARGAR DATOS
 	useEffect(() => {
 		const loadData = async () => {
 			setLoadingData(true);
 			try {
 				// Cargar Marcas
-				const resMarcas = await api.get("/equipos/marcas");
+				const resMarcas = await api
+					.get("/equipos/marcas")
+					.catch(() => ({ data: [] }));
 				setMarcasOptions(
 					resMarcas.data.map((m) => ({ value: m.nombre, label: m.nombre })),
 				);
 
-				// Cargar Proveedores (Necesitas crear esta ruta en el backend luego)
-				// Por ahora simulamos que si falla no rompe la app
-				try {
-					const resProv = await api.get("/proveedores");
-					const provOps = resProv.data
+				// Cargar Proveedores
+				const resProv = await api
+					.get("/proveedores")
+					.catch(() => ({ data: [] }));
+				setProveedoresOptions(
+					resProv.data
 						.filter((p) => p.activo)
-						.map((p) => ({ value: p.id, label: p.razon_social }));
-					setProveedoresOptions(provOps);
-				} catch (err) {
-					console.log("Aún no hay endpoint de proveedores creado");
-				}
+						.map((p) => ({ value: p.id, label: p.razon_social })),
+				);
+
+				// Cargar Empresas (NUEVO)
+				const resEmp = await api.get("/empresas").catch(() => ({ data: [] }));
+				setEmpresasOptions(
+					resEmp.data
+						.filter((e) => e.estado === "Activo" || e.activo) // Dependiendo de cómo lo llame tu BD
+						.map((e) => ({
+							value: e.nombre || e.razon_social,
+							label: e.nombre || e.razon_social,
+						})),
+				);
 			} catch (error) {
 				console.error("Error cargando datos auxiliares");
 			} finally {
@@ -90,8 +103,8 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
 				fecha_compra: equipoToEdit.fecha_compra
 					? equipoToEdit.fecha_compra.split("T")[0]
 					: "",
+				empresa: equipoToEdit.empresa || "", // Rellenar empresa
 
-				// Lógica para detectar si es propio o alquilado
 				condicion_equipo: equipoToEdit.proveedor_id ? "alquilado" : "propio",
 				proveedor_id: equipoToEdit.proveedor_id || null,
 				fecha_fin_alquiler: equipoToEdit.fecha_fin_alquiler
@@ -115,38 +128,29 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
 		setFormData({ ...formData, [e.target.name]: e.target.value });
 	};
 
-	const handleMarcaChange = (newValue) => {
+	const handleMarcaChange = (newValue) =>
 		setFormData({ ...formData, marca: newValue ? newValue.value : "" });
-	};
-
-	const handleCreateMarca = async (inputValue) => {
-		// ... (Tu lógica de crear marca se mantiene igual) ...
-	};
-
-	const handleEstadoChange = (newValue) => {
+	const handleEstadoChange = (newValue) =>
 		setFormData({
 			...formData,
 			estado: newValue ? newValue.value : "operativo",
 		});
-	};
+	const handleProveedorChange = (newValue) =>
+		setFormData({
+			...formData,
+			proveedor_id: newValue ? newValue.value : null,
+		});
+	const handleEmpresaChange = (newValue) =>
+		setFormData({ ...formData, empresa: newValue ? newValue.value : "" }); // NUEVO
 
-	// Handler para condición (Propio/Alquilado)
 	const handleCondicionChange = (newValue) => {
 		const val = newValue ? newValue.value : "propio";
 		setFormData((prev) => ({
 			...prev,
 			condicion_equipo: val,
-			// Si cambia a propio, limpiamos proveedor
 			proveedor_id: val === "propio" ? null : prev.proveedor_id,
+			empresa: val === "alquilado" ? "" : prev.empresa, // Limpiamos empresa si pasa a alquilado
 		}));
-	};
-
-	// Handler para Proveedor
-	const handleProveedorChange = (newValue) => {
-		setFormData({
-			...formData,
-			proveedor_id: newValue ? newValue.value : null,
-		});
 	};
 
 	const handleSpecChange = (index, field, value) => {
@@ -154,6 +158,7 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
 		newSpecs[index][field] = value;
 		setSpecsList(newSpecs);
 	};
+
 	const addSpecRow = () => setSpecsList([...specsList, { key: "", value: "" }]);
 	const removeSpecRow = (index) =>
 		setSpecsList(specsList.filter((_, i) => i !== index));
@@ -161,10 +166,15 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 
-		// Validación extra
+		// Validaciones
 		if (formData.condicion_equipo === "alquilado" && !formData.proveedor_id) {
 			return toast.warning(
 				"Debes seleccionar un proveedor para equipos alquilados",
+			);
+		}
+		if (formData.condicion_equipo === "propio" && !formData.empresa) {
+			return toast.warning(
+				"Debes seleccionar a qué empresa pertenece el equipo",
 			);
 		}
 
@@ -185,12 +195,11 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
 			}
 			onSuccess();
 		} catch (error) {
-			console.error(error);
 			toast.error(error.response?.data?.error || "Error al guardar");
 		}
 	};
 
-	// Estilos (Igual que antes)
+	// Estilos Select
 	const customSelectStyles = {
 		control: (provided, state) => ({
 			...provided,
@@ -221,7 +230,7 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
 
 	return (
 		<form className='equipo-form' onSubmit={handleSubmit}>
-			{/* --- NUEVA SECCIÓN: CONDICIÓN DEL EQUIPO --- */}
+			{/* --- SECCIÓN: CONDICIÓN DEL EQUIPO --- */}
 			<div className='form-row'>
 				<div className='input-group'>
 					<label style={{ display: "flex", gap: "5px", alignItems: "center" }}>
@@ -238,7 +247,7 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
 					/>
 				</div>
 
-				{/* Muestra Proveedor SOLO si es Alquilado */}
+				{/* Si es ALQUILADO muestra Proveedor, Si es PROPIO muestra Empresa */}
 				{formData.condicion_equipo === "alquilado" ? (
 					<div className='input-group'>
 						<label
@@ -246,7 +255,7 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
 								display: "flex",
 								gap: "5px",
 								alignItems: "center",
-								color: "#4f46e5",
+								color: "#c2410c",
 							}}
 						>
 							<FaBuilding /> Proveedor *
@@ -258,13 +267,70 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
 							)}
 							onChange={handleProveedorChange}
 							styles={customSelectStyles}
-							placeholder='Seleccione Empresa...'
+							placeholder='Seleccione Proveedor...'
 							isLoading={loadingData}
 						/>
 					</div>
 				) : (
 					<div className='input-group'>
-						<label>Fecha de Compra (Propio)</label>
+						<label
+							style={{
+								display: "flex",
+								gap: "5px",
+								alignItems: "center",
+								color: "#4f46e5",
+							}}
+						>
+							<FaBuilding /> Empresa Propietaria *
+						</label>
+						<Select
+							options={empresasOptions}
+							value={empresasOptions.find(
+								(op) => op.value === formData.empresa,
+							)}
+							onChange={handleEmpresaChange}
+							styles={customSelectStyles}
+							placeholder='Seleccione Empresa...'
+							isLoading={loadingData}
+						/>
+					</div>
+				)}
+			</div>
+
+			{/* --- SECCIÓN: FECHAS (Dinámico según Condición) --- */}
+			<div className='form-row' style={{ marginTop: "0.5rem" }}>
+				{formData.condicion_equipo === "alquilado" ? (
+					<>
+						<div className='input-group'>
+							<label>
+								<FaCalendarAlt style={{ color: "#94a3b8" }} /> Inicio del
+								Alquiler
+							</label>
+							<input
+								type='date'
+								name='fecha_compra' // Reutilizamos este campo para inicio
+								value={formData.fecha_compra}
+								onChange={handleChange}
+							/>
+						</div>
+						<div className='input-group'>
+							<label>
+								<FaCalendarAlt style={{ color: "#94a3b8" }} /> Fin del Contrato
+								(Opcional)
+							</label>
+							<input
+								type='date'
+								name='fecha_fin_alquiler'
+								value={formData.fecha_fin_alquiler}
+								onChange={handleChange}
+							/>
+						</div>
+					</>
+				) : (
+					<div className='input-group'>
+						<label>
+							<FaCalendarAlt style={{ color: "#94a3b8" }} /> Fecha de Compra
+						</label>
 						<input
 							type='date'
 							name='fecha_compra'
@@ -275,32 +341,9 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
 				)}
 			</div>
 
-			{formData.condicion_equipo === "alquilado" && (
-				<div className='form-row' style={{ marginTop: "0.5rem" }}>
-					<div className='input-group'>
-						<label>Inicio del Alquiler</label>
-						<input
-							type='date'
-							name='fecha_compra' // Usamos fecha_compra como fecha de inicio alquiler para reutilizar la col
-							value={formData.fecha_compra}
-							onChange={handleChange}
-						/>
-					</div>
-					<div className='input-group'>
-						<label>Fin del Contrato (Opcional)</label>
-						<input
-							type='date'
-							name='fecha_fin_alquiler'
-							value={formData.fecha_fin_alquiler}
-							onChange={handleChange}
-						/>
-					</div>
-				</div>
-			)}
-
 			<hr style={{ margin: "1rem 0", borderTop: "1px solid #e2e8f0" }} />
 
-			{/* --- DATOS DEL EQUIPO (IGUAL QUE ANTES) --- */}
+			{/* --- DATOS DEL EQUIPO --- */}
 			<div className='form-row'>
 				<div className='input-group'>
 					<label>Marca</label>
@@ -308,7 +351,6 @@ const AddEquipoForm = ({ onSuccess, equipoToEdit }) => {
 						isClearable
 						isDisabled={loadingData}
 						onChange={handleMarcaChange}
-						// onCreateOption={handleCreateMarca} // Descomentar si usas la función de crear
 						options={marcasOptions}
 						value={marcasOptions.find((op) => op.value === formData.marca)}
 						styles={customSelectStyles}

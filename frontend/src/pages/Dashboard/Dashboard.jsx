@@ -1,258 +1,344 @@
-import { useEffect, useState } from 'react';
-import api from '../../services/api';
+import { useEffect, useState } from "react";
+import api from "../../services/api";
 import {
-  FaLaptop,
-  FaCheckCircle,
-  FaHandHolding,
-  FaTools,
-} from 'react-icons/fa';
+	FaLaptop,
+	FaCheckCircle,
+	FaHandHolding,
+	FaTools,
+} from "react-icons/fa";
 
 // Importamos los gráficos
 import {
-  MovementsChart,
-  StatusChart,
-  ModelsChart,
-  AgeChart,
-  SignaturesChart,
-} from '../../components/Dashboard/DashboardCharts';
+	MovementsChart,
+	StatusChart,
+	ModelsChart,
+	AgeChart,
+	SignaturesChart,
+	CompanyChart,
+	ProviderChart, // <-- IMPORTAMOS EL NUEVO GRÁFICO
+} from "../../components/Dashboard/DashboardCharts";
 
-import './Dashboard.scss';
+import "./Dashboard.scss";
 
 const Dashboard = () => {
-  const [stats, setStats] = useState({
-    total: 0,
-    disponibles: 0,
-    asignados: 0,
-    mantenimiento: 0,
-  });
+	const [stats, setStats] = useState({
+		total: 0,
+		disponibles: 0,
+		asignados: 0,
+		mantenimiento: 0,
+	});
 
-  const [movementsData, setMovementsData] = useState([]);
-  const [statusData, setStatusData] = useState([]);
-  const [modelsData, setModelsData] = useState([]);
-  const [ageData, setAgeData] = useState([]);
-  const [signatureData, setSignatureData] = useState([]);
+	const [movementsData, setMovementsData] = useState([]);
+	const [statusData, setStatusData] = useState([]);
+	const [modelsData, setModelsData] = useState([]);
+	const [ageData, setAgeData] = useState([]);
+	const [signatureData, setSignatureData] = useState([]);
+	const [companyData, setCompanyData] = useState([]);
+	const [providerData, setProviderData] = useState([]); // <-- NUEVO ESTADO
 
-  const [loading, setLoading] = useState(true);
+	const [loading, setLoading] = useState(true);
 
-  // --- PROCESAMIENTO DE DATOS ---
-  const processData = (equipos, historial) => {
-    // 1. MOVIMIENTOS
-    const months = {};
-    historial.forEach((h) => {
-      const date = new Date(h.fecha_movimiento);
-      const key = `${date.getMonth() + 1}/${date.getFullYear()}`;
+	const MESES = [
+		"Ene",
+		"Feb",
+		"Mar",
+		"Abr",
+		"May",
+		"Jun",
+		"Jul",
+		"Ago",
+		"Sep",
+		"Oct",
+		"Nov",
+		"Dic",
+	];
 
-      if (!months[key])
-        months[key] = {
-          name: key,
-          entregas: 0,
-          devoluciones: 0,
-          sort: date.getTime(),
-        };
+	// --- PROCESAMIENTO DE DATOS ---
+	const processData = (equipos, historial, alquileres) => {
+		// 1. MOVIMIENTOS
+		const months = {};
+		historial.forEach((h) => {
+			const date = new Date(h.fecha_movimiento);
+			const mesNombre = MESES[date.getMonth()];
+			const anio = date.getFullYear();
+			const key = `${mesNombre} ${anio}`;
 
-      if (h.tipo === 'entrega') months[key].entregas += 1;
-      if (h.tipo === 'devolucion') months[key].devoluciones += 1;
-    });
-    const moveArray = Object.values(months)
-      .sort((a, b) => a.sort - b.sort)
-      .slice(-6);
-    setMovementsData(moveArray);
+			if (!months[key])
+				months[key] = {
+					name: key,
+					entregas: 0,
+					devoluciones: 0,
+					sort: anio * 100 + date.getMonth(),
+				};
 
-    // 2. ESTADO DEL INVENTARIO (MODIFICADO)
-    const statusCounts = { operativo: 0, malogrado: 0, revision: 0 };
-    equipos.forEach((e) => {
-      // Ignoramos 'Asignado' para este gráfico, solo nos importa el estado físico
-      if (e.estado === 'operativo')
-        statusCounts.operativo++; // Disponible/Operativo
-      else if (e.estado === 'malogrado') statusCounts.malogrado++;
-      else statusCounts.revision++; // Cualquier otro estado es mantenimiento
-    });
+			if (h.tipo === "entrega") months[key].entregas += 1;
+			if (h.tipo === "devolucion") months[key].devoluciones += 1;
+		});
 
-    setStatusData(
-      [
-        { name: 'Disponible', value: statusCounts.operativo },
-        { name: 'En Mantenimiento', value: statusCounts.revision },
-        { name: 'Inoperativo', value: statusCounts.malogrado }, // Nombre profesional para Malogrado
-      ].filter((i) => i.value > 0),
-    ); // Solo mostramos los que tienen datos
+		const moveArray = Object.values(months)
+			.sort((a, b) => a.sort - b.sort)
+			.slice(-6);
+		setMovementsData(moveArray);
 
-    // 3. TOP MODELOS
-    const modelsCount = {};
-    equipos.forEach((e) => {
-      const key = `${e.marca} ${e.modelo}`;
-      modelsCount[key] = (modelsCount[key] || 0) + 1;
-    });
-    const modelsArray = Object.entries(modelsCount)
-      .map(([name, cantidad]) => ({ name, cantidad }))
-      .sort((a, b) => b.cantidad - a.cantidad)
-      .slice(0, 5);
-    setModelsData(modelsArray);
+		// 2. ESTADO DEL INVENTARIO
+		const statusCounts = { operativo: 0, malogrado: 0, revision: 0 };
+		equipos.forEach((e) => {
+			if (e.estado === "operativo") statusCounts.operativo++;
+			else if (e.estado === "malogrado") statusCounts.malogrado++;
+			else statusCounts.revision++;
+		});
 
-    // 4. ANTIGÜEDAD
-    const yearsCount = {};
-    equipos.forEach((e) => {
-      if (e.fecha_compra) {
-        const year = new Date(e.fecha_compra).getFullYear();
-        yearsCount[year] = (yearsCount[year] || 0) + 1;
-      }
-    });
-    const ageArray = Object.entries(yearsCount)
-      .map(([year, cantidad]) => ({ year, cantidad }))
-      .sort((a, b) => a.year - b.year);
-    setAgeData(ageArray);
+		setStatusData(
+			[
+				{ name: "Disponible", value: statusCounts.operativo },
+				{ name: "En Mantenimiento", value: statusCounts.revision },
+				{ name: "Inoperativo", value: statusCounts.malogrado },
+			].filter((i) => i.value > 0),
+		);
 
-    // 5. ESTADO DE FIRMAS
-    let firmados = 0;
-    let pendientes = 0;
-    historial.forEach((h) => {
-      if (h.tipo === 'entrega' || h.tipo === 'devolucion') {
-        if (h.pdf_firmado_url && h.firma_valida !== false) firmados++;
-        else pendientes++;
-      }
-    });
-    setSignatureData([
-      { name: 'Firmados', value: firmados },
-      { name: 'Pendientes', value: pendientes },
-    ]);
-  };
+		// 3. TOP MODELOS (INVENTARIO VS RENTAS)
+		const rentedIds = new Set(
+			alquileres
+				.filter((a) => {
+					if (a.estado !== "Activo") return false;
+					if (!a.fecha_fin) return true;
+					const endDate = new Date(a.fecha_fin);
+					const today = new Date();
+					today.setHours(0, 0, 0, 0);
+					return endDate >= today;
+				})
+				.map((a) => a.equipo_id),
+		);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [resEq, resHis] = await Promise.all([
-          api.get('/equipos'),
-          api.get('/historial'),
-        ]);
+		const modelsCount = {};
+		equipos.forEach((e) => {
+			const key = `${e.marca} ${e.modelo}`;
+			if (!modelsCount[key]) {
+				modelsCount[key] = { name: key, total: 0, rentados: 0, disponibles: 0 };
+			}
 
-        const equipos = resEq.data;
-        const historial = resHis.data;
+			modelsCount[key].total += 1;
 
-        // Stats Tarjetas (Se mantienen igual, muestran panorama completo)
-        const total = equipos.length;
-        const asignados = equipos.filter((e) => !e.disponible).length;
-        const disponibles = equipos.filter(
-          (e) => e.disponible && e.estado === 'operativo',
-        ).length;
-        const mantenimiento = equipos.filter(
-          (e) => e.estado !== 'operativo',
-        ).length;
+			if (rentedIds.has(e.id)) {
+				modelsCount[key].rentados += 1;
+			} else {
+				modelsCount[key].disponibles += 1;
+			}
+		});
 
-        setStats({ total, asignados, disponibles, mantenimiento });
+		const modelsArray = Object.values(modelsCount)
+			.sort((a, b) => b.total - a.total)
+			.slice(0, 6);
+		setModelsData(modelsArray);
 
-        processData(equipos, historial);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStats();
-  }, []);
+		// 4. ANTIGÜEDAD
+		const yearsCount = {};
+		equipos.forEach((e) => {
+			if (e.fecha_compra) {
+				const year = new Date(e.fecha_compra).getFullYear();
+				yearsCount[year] = (yearsCount[year] || 0) + 1;
+			}
+		});
+		const ageArray = Object.entries(yearsCount)
+			.map(([year, cantidad]) => ({ year, cantidad }))
+			.sort((a, b) => a.year - b.year);
+		setAgeData(ageArray);
 
-  if (loading)
-    return <div style={{ padding: '2rem' }}>Cargando estadísticas...</div>;
+		// 5. ESTADO DE FIRMAS
+		let firmados = 0;
+		let pendientes = 0;
+		historial.forEach((h) => {
+			if (h.tipo === "entrega" || h.tipo === "devolucion") {
+				if (h.pdf_firmado_url && h.firma_valida !== false) firmados++;
+				else pendientes++;
+			}
+		});
+		setSignatureData([
+			{ name: "Firmados", value: firmados },
+			{ name: "Pendientes", value: pendientes },
+		]);
 
-  return (
-    <div className='dashboard-container'>
-      <h1>Resumen General</h1>
+		// 6. TOP EMPRESAS (EQUIPOS PROPIOS)
+		const companyCount = {};
+		equipos.forEach((e) => {
+			if (!e.proveedor_id) {
+				// Solo propios
+				const nombreEmpresa = e.empresa
+					? String(e.empresa).trim().toUpperCase()
+					: "SIN EMPRESA ASIGNADA";
+				companyCount[nombreEmpresa] = (companyCount[nombreEmpresa] || 0) + 1;
+			}
+		});
+		const companyArray = Object.entries(companyCount)
+			.map(([name, cantidad]) => ({ name, cantidad }))
+			.sort((a, b) => b.cantidad - a.cantidad)
+			.slice(0, 5);
+		setCompanyData(companyArray);
 
-      {/* --- TARJETAS KPI --- */}
-      <div className='stats-grid'>
-        <div
-          className='stat-card'
-          style={{ backgroundColor: '#1e293b' }}
-        >
-          <div className='info'>
-            <h3>Total Equipos</h3>
-            <span
-              className='number'
-              style={{ color: '#fff' }}
-            >
-              {stats.total}
-            </span>
-          </div>
-          <div className='icon-box purple'>
-            <FaLaptop />
-          </div>
-        </div>
-        <div className='stat-card'>
-          <div className='info'>
-            <h3>Equipos Asignados</h3>
-            <span className='number'>{stats.asignados}</span>
-          </div>
-          <div className='icon-box blue'>
-            <FaHandHolding />
-          </div>
-        </div>
-        <div
-          className='stat-card'
-          style={{ backgroundColor: '#1e293b' }}
-        >
-          <div className='info'>
-            <h3>Equipos Disponibles</h3>
-            <span
-              className='number'
-              style={{ color: '#fff' }}
-            >
-              {stats.disponibles}
-            </span>
-          </div>
-          <div className='icon-box green'>
-            <FaCheckCircle />
-          </div>
-        </div>
-        <div className='stat-card'>
-          <div className='info'>
-            <h3>Equipos Inoperativos</h3>
-            <span className='number'>{stats.mantenimiento}</span>
-          </div>
-          <div className='icon-box orange'>
-            <FaTools />
-          </div>
-        </div>
-      </div>
+		// =========================================================
+		// 7. TOP PROVEEDORES (EQUIPOS ALQUILADOS) - NUEVO
+		// =========================================================
+		const providerCount = {};
+		equipos.forEach((e) => {
+			if (e.proveedor_id) {
+				// Solo alquilados
+				const provName = e.nombre_proveedor
+					? String(e.nombre_proveedor).trim().toUpperCase()
+					: "PROVEEDOR DESCONOCIDO";
+				providerCount[provName] = (providerCount[provName] || 0) + 1;
+			}
+		});
+		const providerArray = Object.entries(providerCount)
+			.map(([name, cantidad]) => ({ name, cantidad }))
+			.sort((a, b) => b.cantidad - a.cantidad)
+			.slice(0, 5); // Top 5
+		setProviderData(providerArray);
+	};
 
-      {/* --- SECCIÓN DE GRÁFICOS --- */}
+	useEffect(() => {
+		const fetchStats = async () => {
+			try {
+				const [resEq, resHis, resAlq] = await Promise.all([
+					api.get("/equipos"),
+					api.get("/historial"),
+					api.get("/alquileres"),
+				]);
 
-      {/* FILA 1 */}
-      <div className='charts-row main-row'>
-        <div className='chart-card large'>
-          <h3>Movimientos (Entregas vs Devoluciones)</h3>
-          <div className='chart-wrapper'>
-            <MovementsChart data={movementsData} />
-          </div>
-        </div>
-        <div className='chart-card'>
-          <h3>Estado de Equipos</h3>
-          <div className='chart-wrapper'>
-            <StatusChart data={statusData} />
-          </div>
-        </div>
-      </div>
+				const equipos = resEq.data;
+				const historial = resHis.data;
+				const alquileres = resAlq.data;
 
-      {/* FILA 2 */}
-      <div className='charts-row secondary-row'>
-        <div className='chart-card'>
-          <h3>Top Modelos</h3>
-          <div className='chart-wrapper'>
-            <ModelsChart data={modelsData} />
-          </div>
-        </div>
-        <div className='chart-card'>
-          <h3>Antigüedad (Año Compra)</h3>
-          <div className='chart-wrapper'>
-            <AgeChart data={ageData} />
-          </div>
-        </div>
-        <div className='chart-card'>
-          <h3>Cumplimiento (Firmas)</h3>
-          <div className='chart-wrapper'>
-            <SignaturesChart data={signatureData} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+				const total = equipos.length;
+				const asignados = equipos.filter((e) => !e.disponible).length;
+				const disponibles = equipos.filter(
+					(e) => e.disponible && e.estado === "operativo",
+				).length;
+				const mantenimiento = equipos.filter(
+					(e) => e.estado !== "operativo",
+				).length;
+
+				setStats({ total, asignados, disponibles, mantenimiento });
+
+				processData(equipos, historial, alquileres);
+			} catch (error) {
+				console.error(error);
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchStats();
+	}, []);
+
+	if (loading)
+		return <div style={{ padding: "2rem" }}>Cargando estadísticas...</div>;
+
+	return (
+		<div className='dashboard-container'>
+			<h1>Resumen General</h1>
+
+			{/* --- TARJETAS KPI --- */}
+			<div className='stats-grid'>
+				<div className='stat-card' style={{ backgroundColor: "#1e293b" }}>
+					<div className='info'>
+						<h3>Total Equipos</h3>
+						<span className='number' style={{ color: "#fff" }}>
+							{stats.total}
+						</span>
+					</div>
+					<div className='icon-box purple'>
+						<FaLaptop />
+					</div>
+				</div>
+				<div className='stat-card'>
+					<div className='info'>
+						<h3>Equipos Asignados</h3>
+						<span className='number'>{stats.asignados}</span>
+					</div>
+					<div className='icon-box blue'>
+						<FaHandHolding />
+					</div>
+				</div>
+				<div className='stat-card' style={{ backgroundColor: "#1e293b" }}>
+					<div className='info'>
+						<h3>Equipos Disponibles</h3>
+						<span className='number' style={{ color: "#fff" }}>
+							{stats.disponibles}
+						</span>
+					</div>
+					<div className='icon-box green'>
+						<FaCheckCircle />
+					</div>
+				</div>
+				<div className='stat-card'>
+					<div className='info'>
+						<h3>Equipos Inoperativos</h3>
+						<span className='number'>{stats.mantenimiento}</span>
+					</div>
+					<div className='icon-box orange'>
+						<FaTools />
+					</div>
+				</div>
+			</div>
+
+			{/* --- SECCIÓN DE GRÁFICOS --- */}
+			<div className='charts-row main-row'>
+				<div className='chart-card large'>
+					<h3>Movimientos (Entregas vs Devoluciones)</h3>
+					<div className='chart-wrapper'>
+						<MovementsChart data={movementsData} />
+					</div>
+				</div>
+				<div className='chart-card'>
+					<h3>Estado de Equipos</h3>
+					<div className='chart-wrapper'>
+						<StatusChart data={statusData} />
+					</div>
+				</div>
+			</div>
+
+			<div className='charts-row secondary-row'>
+				{/* GRÁFICO 1 */}
+				<div className='chart-card'>
+					<h3>Distribución (Equipos Propios)</h3>
+					<div className='chart-wrapper'>
+						<CompanyChart data={companyData} />
+					</div>
+				</div>
+
+				{/* GRÁFICO 2: NUEVO GRÁFICO DE PROVEEDORES */}
+				<div className='chart-card'>
+					<h3>Top Proveedores (Alquilados)</h3>
+					<div className='chart-wrapper'>
+						<ProviderChart data={providerData} />
+					</div>
+				</div>
+
+				{/* GRÁFICO 3 */}
+				<div className='chart-card'>
+					<h3>Inventario vs Rentas</h3>
+					<div className='chart-wrapper' style={{ display: "block" }}>
+						<ModelsChart data={modelsData} />
+					</div>
+				</div>
+
+				{/* GRÁFICO 4 */}
+				<div className='chart-card'>
+					<h3>Antigüedad (Año Compra)</h3>
+					<div className='chart-wrapper'>
+						<AgeChart data={ageData} />
+					</div>
+				</div>
+
+				{/* GRÁFICO 5 */}
+				<div className='chart-card full-width'>
+					<h3>Cumplimiento (Firmas)</h3>
+					<div className='chart-wrapper'>
+						<SignaturesChart data={signatureData} />
+					</div>
+				</div>
+			</div>
+		</div>
+	);
 };
 
 export default Dashboard;
