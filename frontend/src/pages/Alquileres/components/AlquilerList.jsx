@@ -8,6 +8,7 @@ import {
 	FaChevronLeft,
 	FaChevronRight,
 	FaEye,
+	FaBan,
 } from "react-icons/fa";
 import "./AlquilerList.scss";
 
@@ -122,7 +123,7 @@ const AlquilerList = ({
 													onClick={() => onDelete(item)}
 													title='Cancelar Contrato'
 												>
-													<FaTrash />
+													<FaBan />
 												</button>
 											</>
 										) : (
