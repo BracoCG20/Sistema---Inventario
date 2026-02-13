@@ -4,7 +4,7 @@ import { FaUserPlus, FaEdit, FaLock, FaSave } from "react-icons/fa";
 import api from "../../services/api";
 import Select from "react-select";
 import CustomSelect from "../../components/Select/CustomSelect";
-import "../Equipos/FormStyles.scss";
+import "./AddUsuarioForm.scss";
 
 const AddUsuarioForm = ({ onSuccess, usuarioToEdit }) => {
 	const [formData, setFormData] = useState({
@@ -240,9 +240,7 @@ const AddUsuarioForm = ({ onSuccess, usuarioToEdit }) => {
 						value={empresaOptions.find((op) => op.value === formData.empresa)}
 						onChange={handleEmpresaChange}
 						styles={customSelectStyles}
-						placeholder={
-							loadingEmpresas ? "Cargando..." : "Seleccione empresa..."
-						}
+						placeholder={loadingEmpresas ? "Cargando..." : "Seleccione"}
 						isLoading={loadingEmpresas}
 						isClearable // <--- AHORA SIEMPRE SE PUEDE LIMPIAR Y EDITAR
 						// Eliminamos la línea: isDisabled={isEdit}

@@ -1,0 +1,398 @@
+@use "../../styles/variables" as v;
+
+.alquileres-container {
+	padding: 2rem;
+	max-width: 1600px;
+	margin: 0 auto;
+	width: 95%;
+
+	// --- CABECERA ---
+	.page-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 2rem;
+
+		h1 {
+			font-size: 1.8rem;
+			color: v.$primary;
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			font-weight: 700;
+			margin: 0;
+		}
+
+		.header-actions {
+			display: flex;
+			gap: 12px;
+		}
+
+		.btn-action-header {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			padding: 10px 20px;
+			border-radius: 10px;
+			font-weight: 600;
+			font-size: 0.95rem;
+			border: none;
+			cursor: pointer;
+			color: white;
+			transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+
+			&:hover {
+				transform: translateY(-2px);
+				box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+			}
+
+			&.btn-excel {
+				background-color: #10b981;
+				&:hover {
+					background-color: #059669;
+				}
+			}
+
+			&.btn-add {
+				background-color: v.$primary;
+				&:hover {
+					filter: brightness(0.9);
+				}
+			}
+		}
+	}
+
+	// --- BUSCADOR ---
+	.search-bar {
+		margin-bottom: 24px;
+		background: white;
+		padding: 12px 18px;
+		border-radius: 12px;
+		border: 1px solid #e2e8f0;
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		transition: all 0.3s ease;
+
+		&:focus-within {
+			border-color: v.$primary;
+			box-shadow: 0 0 0 3px rgba(v.$primary, 0.1);
+		}
+
+		input {
+			border: none;
+			outline: none;
+			width: 100%;
+			font-size: 0.95rem;
+			color: #1e293b;
+			&::placeholder {
+				color: #94a3b8;
+			}
+		}
+		svg {
+			color: #94a3b8;
+		}
+	}
+
+	.loading-state {
+		padding: 4rem;
+		text-align: center;
+		color: #94a3b8;
+		font-size: 1.2rem;
+		font-weight: 500;
+	}
+}
+
+// =======================================================
+// ESTILOS DE VISTA PREVIA (MODAL DETALLE)
+// =======================================================
+.preview-container {
+	padding: 5px;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+
+	.preview-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		background: #f8fafc;
+		padding: 12px 15px;
+		border-radius: 10px;
+		border: 1px solid #e2e8f0;
+
+		.contract-id {
+			font-weight: 800;
+			color: v.$primary;
+			font-size: 1.1rem;
+		}
+	}
+
+	// Tarjetas una debajo de la otra (Apiladas)
+	.preview-stack {
+		display: flex;
+		flex-direction: column;
+		gap: 15px;
+	}
+
+	.preview-card {
+		background: white;
+		border: 1px solid #e2e8f0;
+		border-radius: 12px;
+		padding: 18px;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+
+		h5 {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			color: #1e293b;
+			font-size: 0.95rem;
+			margin-bottom: 15px;
+			border-bottom: 1px solid #f1f5f9;
+			padding-bottom: 10px;
+			font-weight: 700;
+			svg {
+				color: v.$primary;
+			}
+		}
+
+		.detail-item {
+			margin-bottom: 10px;
+			display: flex;
+			flex-direction: column;
+			gap: 2px;
+
+			label {
+				font-size: 0.75rem;
+				text-transform: uppercase;
+				color: #94a3b8;
+				font-weight: 600;
+				display: flex;
+				align-items: center;
+				gap: 5px;
+			}
+
+			span {
+				font-weight: 600;
+				color: #334155;
+				font-size: 0.95rem;
+			}
+
+			.serial-code {
+				font-family: "Courier New", Courier, monospace;
+				background: #f1f5f9;
+				padding: 2px 6px;
+				border-radius: 4px;
+				color: v.$primary;
+				display: inline-block;
+				width: fit-content;
+			}
+		}
+	}
+
+	// --- SECCIÓN DE ARCHIVOS ---
+	.documents-section {
+		.files-list {
+			background: #f8fafc;
+			border: 1px solid #e2e8f0;
+			border-radius: 12px;
+			padding: 12px;
+			margin-bottom: 15px;
+
+			.no-files {
+				text-align: center;
+				color: #94a3b8;
+				font-size: 0.85rem;
+				font-style: italic;
+				padding: 10px;
+			}
+
+			.file-action-box {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				background: white;
+				padding: 10px 15px;
+				border-radius: 10px;
+				border: 1px solid #cbd5e1;
+
+				.file-info-mini {
+					display: flex;
+					align-items: center;
+					gap: 10px;
+					font-size: 0.85rem;
+					font-weight: 600;
+					color: #475569;
+					max-width: 60%;
+					overflow: hidden;
+					text-overflow: ellipsis;
+					white-space: nowrap;
+
+					.icon-pdf {
+						color: #ef4444;
+						font-size: 1.2rem;
+					}
+				}
+
+				.file-actions {
+					display: flex;
+					gap: 8px;
+
+					.btn-file-action {
+						width: 35px;
+						height: 35px;
+						display: flex;
+						align-items: center;
+						justify-content: center;
+						border-radius: 8px;
+						border: none;
+						cursor: pointer;
+						font-size: 1rem;
+						transition: all 0.2s;
+						text-decoration: none;
+
+						&.view {
+							background: #eef2ff;
+							color: #4f46e5;
+							&:hover {
+								background: #4f46e5;
+								color: white;
+							}
+						}
+						&.download {
+							background: #ecfdf5;
+							color: #10b981;
+							&:hover {
+								background: #10b981;
+								color: white;
+							}
+						}
+						&.delete {
+							background: #fef2f2;
+							color: #ef4444;
+							&:hover {
+								background: #ef4444;
+								color: white;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		.upload-zone {
+			.upload-label {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				gap: 8px;
+				padding: 25px;
+				border: 2px dashed #cbd5e1;
+				border-radius: 12px;
+				background-color: rgba(v.$primary, 0.01);
+				cursor: pointer;
+				transition: all 0.3s ease;
+
+				&:hover {
+					border-color: v.$primary;
+					background-color: #f5f3ff;
+					transform: translateY(-2px);
+				}
+
+				svg {
+					font-size: 2rem;
+					color: v.$primary;
+					margin-bottom: 5px;
+				}
+				span {
+					font-weight: 700;
+					color: #1e293b;
+				}
+				small {
+					color: #94a3b8;
+					font-size: 0.75rem;
+				}
+			}
+		}
+	}
+}
+
+// =======================================================
+// ESTILOS MODAL DE CONFIRMACIÓN (BAJA DE CONTRATO)
+// =======================================================
+.confirm-modal-content {
+	padding: 1rem;
+	text-align: center;
+
+	.warning-icon {
+		font-size: 3.5rem;
+		color: #f59e0b;
+		background-color: #fffbeb;
+		width: 90px;
+		height: 90px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin: 0 auto 1.5rem auto;
+	}
+
+	h3 {
+		color: #1e293b;
+		margin-bottom: 0.8rem;
+		font-size: 1.4rem;
+		font-weight: 700;
+	}
+
+	p {
+		color: #64748b;
+		margin-bottom: 2.5rem;
+		font-size: 1rem;
+		line-height: 1.6;
+		strong {
+			color: #334155;
+		}
+	}
+
+	.modal-actions {
+		display: flex;
+		gap: 1.2rem;
+		justify-content: center;
+
+		button {
+			padding: 12px 28px;
+			border-radius: 10px;
+			font-weight: 700;
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			border: none;
+			cursor: pointer;
+			font-size: 0.95rem;
+			transition: all 0.2s;
+		}
+
+		.btn-cancel {
+			background-color: white;
+			border: 1px solid #cbd5e1;
+			color: #64748b;
+			&:hover {
+				background-color: #f8fafc;
+			}
+		}
+
+		.btn-confirm {
+			background-color: #ef4444;
+			color: white;
+			box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2);
+			&:hover {
+				background-color: #dc2626;
+				transform: translateY(-2px);
+				box-shadow: 0 6px 12px rgba(239, 68, 68, 0.3);
+			}
+		}
+	}
+}

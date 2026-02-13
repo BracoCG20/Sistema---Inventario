@@ -1,0 +1,188 @@
+@use "../../../styles/variables" as v;
+
+.table-container {
+	background: white;
+	border-radius: 16px;
+	box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+	border: 1px solid #f1f5f9;
+	overflow: hidden;
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		thead tr {
+			background-color: #eef2ff;
+			th {
+				padding: 16px 20px;
+				text-align: left;
+				font-weight: 700;
+				font-size: 0.75rem;
+				text-transform: uppercase;
+				color: #4338ca;
+				letter-spacing: 0.8px;
+				&.center {
+					text-align: center;
+				}
+			}
+		}
+
+		tbody tr {
+			border-bottom: 1px solid #f1f5f9;
+			transition: all 0.2s;
+			position: relative;
+			&:hover {
+				background-color: #f8fafc;
+			}
+
+			// --- LÍNEA MORADA LATERAL AL HACER HOVER ---
+			td:first-child::before {
+				content: "";
+				position: absolute;
+				left: 0;
+				top: 0;
+				bottom: 0;
+				width: 4px;
+				background-color: transparent;
+				transition: background-color 0.2s;
+			}
+			&:hover:not(.inactive-row) td:first-child::before {
+				background-color: v.$primary; // Tu morado
+			}
+
+			&.inactive-row {
+				opacity: 0.65;
+				background-color: #fafafa;
+				.price-text {
+					color: #94a3b8;
+				}
+			}
+			td {
+				padding: 14px 20px;
+				vertical-align: middle;
+				&.center {
+					text-align: center;
+				} // Centrado de la celda
+			}
+		}
+	}
+
+	.price-text {
+		color: #059669;
+		font-weight: 700;
+		font-size: 0.95rem;
+	}
+
+	.pagination-footer {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 16px 25px;
+		border-top: 1px solid #e2e8f0;
+		.controls {
+			display: flex;
+			gap: 6px;
+			button {
+				width: 32px;
+				height: 32px;
+				border: 1px solid #e2e8f0;
+				border-radius: 8px;
+				background: white;
+				cursor: pointer;
+				&.active {
+					background: v.$primary;
+					color: white;
+					border-color: v.$primary;
+				}
+			}
+		}
+	}
+}
+
+// --- ESTADO CENTRADO Y VERDE ---
+.status-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 5px 12px;
+	border-radius: 20px;
+	font-size: 0.65rem;
+	font-weight: 800;
+	text-transform: uppercase;
+	margin: 0 auto; // Asegura centrado dentro de td.center
+
+	&.activo {
+		background-color: #ecfdf5;
+		color: #047857;
+		border: 1px solid #d1fae5;
+	}
+	&.cancelado {
+		background-color: #fee2e2;
+		color: #991b1b;
+		border: 1px solid #fecaca;
+	}
+}
+
+.info-primary {
+	font-weight: 600;
+	color: #1e293b;
+	display: block;
+	font-size: 0.9rem;
+}
+.info-secondary {
+	font-size: 0.75rem;
+	color: #94a3b8;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.actions-cell {
+	display: flex;
+	justify-content: center;
+	gap: 8px;
+	.action-btn {
+		width: 32px;
+		height: 32px;
+		border-radius: 8px;
+		border: none;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		&.edit {
+			color: #f59e0b;
+			&:hover {
+				background: #fffbeb;
+			}
+		}
+		&.delete {
+			color: #ef4444;
+			&:hover {
+				background: #fef2f2;
+			}
+		}
+		&.activate {
+			color: #10b981;
+			&:hover {
+				background: #ecfdf5;
+			}
+		}
+	}
+}
+td.center {
+	text-align: center;
+	.actions-cell,
+	.status-badge {
+		margin: 0 auto;
+		justify-content: center;
+	}
+}
+
+// Estilo específico para el botón de vista previa (ojo)
+.action-btn.view {
+	color: #6366f1; // Un azul/morado suave
+	&:hover {
+		background-color: #eef2ff;
+		transform: translateY(-2px);
+	}
+}

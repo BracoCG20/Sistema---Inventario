@@ -1,0 +1,126 @@
+@use "../../../styles/variables" as v;
+
+.form-grid {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+	padding: 5px;
+
+	.form-group {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+
+		label {
+			font-size: 0.85rem;
+			font-weight: 700;
+			color: #4b5563;
+			margin-left: 2px;
+		}
+
+		// Estilos base para inputs
+		input,
+		textarea {
+			width: 100%;
+			padding: 10px 14px;
+			border-radius: 8px;
+			border: 1px solid #cbd5e1;
+			font-size: 0.95rem;
+			color: #1f2937;
+			background-color: #fff;
+			transition: all 0.2s;
+			outline: none;
+			font-family: inherit;
+			box-sizing: border-box;
+
+			&:focus {
+				border-color: v.$primary;
+				box-shadow: 0 0 0 3px rgba(v.$primary, 0.15);
+			}
+
+			&::placeholder {
+				color: #9ca3af;
+			}
+
+			&:disabled {
+				background-color: #f3f4f6;
+				cursor: not-allowed;
+			}
+		}
+
+		// --- CLASE ESPECÍFICA PARA EL PRECIO ---
+		// Fuerza la altura a 45px para igualar exactamente al React Select
+		.input-price {
+			height: 45px;
+			padding: 0 14px;
+			// Eliminamos line-height conflictivos
+		}
+
+		textarea {
+			resize: vertical;
+			min-height: 80px;
+		}
+	}
+
+	// Dos columnas
+	.form-group-row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 16px;
+
+		@media (max-width: 600px) {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	.full-width {
+		width: 100%;
+	}
+
+	// Botones al final
+	.form-actions {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 12px;
+
+		margin-top: 10px;
+		padding-top: 20px;
+		border-top: 1px solid #e5e7eb;
+
+		button {
+			flex: 1;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 8px;
+			height: 45px;
+			border-radius: 8px;
+			font-weight: 600;
+			border: none;
+			cursor: pointer;
+			font-size: 0.95rem;
+			transition: all 0.2s ease;
+
+			&.btn-cancel {
+				background-color: #ffffff;
+				border: 1px solid #d1d5db;
+				color: #4b5563;
+				&:hover {
+					background-color: #f3f4f6;
+					border-color: #9ca3af;
+				}
+			}
+
+			&.btn-submit {
+				background-color: v.$primary;
+				color: white;
+				box-shadow: 0 4px 6px rgba(v.$primary, 0.2);
+				&:hover {
+					filter: brightness(1.1);
+					transform: translateY(-1px);
+				}
+			}
+		}
+	}
+}

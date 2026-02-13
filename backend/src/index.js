@@ -1,67 +1,85 @@
-const express = require('express');
-const cors = require('cors');
-const morgan = require('morgan');
-const path = require('path');
+const express = require("express");
+const cors = require("cors");
+const morgan = require("morgan");
+const path = require("path");
+require("dotenv").config(); // Es buena práctica cargarlo al inicio
 
-// Importar rutas
-const equiposRoutes = require('./routes/equiposRoutes');
-const usuariosRoutes = require('./routes/usuariosRoutes');
-const movimientosRoutes = require('./routes/movimientosRoutes');
-const notificationRoutes = require('./routes/notificationRoutes');
-const authRoutes = require('./routes/authRoutes');
-const empresasRoutes = require('./routes/empresasRoutes');
-const serviciosRoutes = require('./routes/serviciosRoutes');
-const proveedoresRoutes = require('./routes/proveedoresRoutes'); // <--- NUEVO IMPORT
+// --- IMPORTAR BASE DE DATOS ---
+const db = require("./config/db");
 
-// Middleware de autenticación
-const verifyToken = require('./middlewares/authMiddleware');
+// --- IMPORTAR RUTAS ---
+// Rutas existentes (carpeta /routes)
+const authRoutes = require("./routes/authRoutes");
+const equiposRoutes = require("./routes/equiposRoutes");
+const usuariosRoutes = require("./routes/usuariosRoutes");
+const movimientosRoutes = require("./routes/movimientosRoutes");
+const empresasRoutes = require("./routes/empresasRoutes");
+const serviciosRoutes = require("./routes/serviciosRoutes");
+const proveedoresRoutes = require("./routes/proveedoresRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const alquileresRoutes = require("./routes/alquileresRoutes");
 
-require('dotenv').config();
+// Nuevas rutas (carpeta /src/routes)
+// Nota: Si moviste el archivo a la carpeta 'routes' normal, quita el 'src/'
+const clientesRoutes = require("./routes/clientesRoutes");
 
-// Importamos la base de datos
-const db = require('./config/db');
+// --- MIDDLEWARE DE SEGURIDAD ---
+const verifyToken = require("./middlewares/authMiddleware");
 
+// --- INICIALIZAR APP ---
 const app = express();
 
-// Middlewares
+// --- MIDDLEWARES GLOBALES ---
 app.use(cors());
-app.use(morgan('dev'));
-app.use(express.json());
+app.use(morgan("dev")); // Logger de peticiones en consola
+app.use(express.json()); // Para leer JSON en el body de las peticiones
 
-// --- RUTAS PÚBLICAS ---
-app.use('/api/auth', authRoutes);
-app.use('/uploads', express.static('uploads'));
+// --- ARCHIVOS ESTÁTICOS (FOTOS) ---
+app.use("/uploads", express.static("uploads"));
 
-// --- RUTAS PROTEGIDAS (Requieren Token) ---
-app.use('/api/equipos', verifyToken, equiposRoutes);
-app.use('/api/usuarios', verifyToken, usuariosRoutes);
-app.use('/api/servicios', verifyToken, serviciosRoutes);
+// ================= RUTAS DE LA API =================
 
-// Movimientos e Historial (usan el mismo controlador)
-app.use('/api/movimientos', verifyToken, movimientosRoutes);
-app.use('/api/historial', verifyToken, movimientosRoutes);
-app.use('/api/empresas', verifyToken, empresasRoutes);
-app.use('/api/proveedores', verifyToken, proveedoresRoutes); // <--- NUEVA RUTA REGISTRADA
+// 1. Autenticación (Pública)
+app.use("/api/auth", authRoutes);
 
-// Notificaciones (Correo y WhatsApp)
-app.use('/api/notificaciones', verifyToken, notificationRoutes);
+// 2. Gestión de Inventario y RRHH (Protegidas)
+app.use("/api/equipos", verifyToken, equiposRoutes);
+app.use("/api/usuarios", verifyToken, usuariosRoutes);
+app.use("/api/proveedores", verifyToken, proveedoresRoutes);
+app.use("/api/empresas", verifyToken, empresasRoutes); // Empresas internas/facturación
+app.use("/api/servicios", verifyToken, serviciosRoutes);
 
-// --- RUTA DE PRUEBA DE CONEXIÓN ---
-app.get('/test-db', async (req, res) => {
-  try {
-    const result = await db.query('SELECT NOW()');
-    res.json({
-      message: 'Conexión exitosa a Postgres 🐘',
-      hora_servidor: result.rows[0].now,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al conectar con la BD' });
-  }
+// 3. Renta de Equipos (Protegidas)
+app.use("/api/alquileres", verifyToken, alquileresRoutes);
+app.use("/api/clientes", verifyToken, clientesRoutes); // <--- NUEVO: Clientes externos
+
+// 4. Operaciones y Trazabilidad (Protegidas)
+// Movimientos e Historial comparten controlador
+app.use("/api/movimientos", verifyToken, movimientosRoutes);
+app.use("/api/historial", verifyToken, movimientosRoutes);
+
+// 5. Utilidades (Protegidas)
+app.use("/api/notificaciones", verifyToken, notificationRoutes);
+
+// ===================================================
+
+// --- RUTA DE PRUEBA DE BASE DE DATOS ---
+app.get("/test-db", async (req, res) => {
+	try {
+		const result = await db.query("SELECT NOW()");
+		res.json({
+			message: "Conexión exitosa a Postgres 🐘",
+			hora_servidor: result.rows[0].now,
+		});
+	} catch (error) {
+		console.error(error);
+		res.status(500).json({ error: "Error al conectar con la BD" });
+	}
 });
 
-// 2. Iniciar Servidor Express
+// --- INICIAR SERVIDOR ---
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-  console.log(`\n🚀 Servidor corriendo en el puerto ${PORT}`);
+	console.log(`\n🚀 Servidor corriendo en el puerto ${PORT}`);
+	console.log(`📡 API lista en: http://localhost:${PORT}/api`);
 });
