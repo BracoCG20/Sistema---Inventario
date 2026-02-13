@@ -150,3 +150,43 @@
     font-size: 0.9rem;
   }
 }
+
+// --- ESTILOS DEL GENERADOR DE PROCESADORES ---
+.procesador-builder {
+  background-color: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  padding: 16px;
+  border-radius: 12px;
+  margin-top: 12px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: #a78bfa;
+    background-color: #f5f3ff;
+  }
+
+  .builder-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #6d28d9;
+    text-transform: uppercase;
+    font-weight: 800;
+    margin-bottom: 12px;
+
+    svg {
+      font-size: 1.1rem;
+    }
+  }
+
+  .builder-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr;
+    }
+  }
+}

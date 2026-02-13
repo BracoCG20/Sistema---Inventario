@@ -128,7 +128,9 @@ const Servicios = () => {
         ? new Date(s.fecha_proximo_pago).toLocaleDateString()
         : '-',
       'Método de Pago': s.metodo_pago || '-',
+      'N° Tarjeta/Cuenta': s.numero_tarjeta_cuenta || '-',
       Titular: s.titular_pago || '-',
+      CCI: s.cci || '-',
       'Empresa Usuaria': s.empresa_usuaria_nombre || '-',
       'Empresa Facturación': s.empresa_facturacion_nombre || '-',
       'Licencias Totales': s.licencias_totales,

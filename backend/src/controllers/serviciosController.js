@@ -39,24 +39,26 @@ const createServicio = async (req, res) => {
     frecuencia_pago,
     fecha_proximo_pago,
     metodo_pago,
-    titular_pago,
+    numero_tarjeta_cuenta, // <--- NUEVO CAMPO
+    titular_pago, // <--- MOVIDO DE SECCIÓN PERO YA EXISTÍA
+    cci, // <--- NUEVO CAMPO
     empresa_facturacion_id,
     empresa_usuaria_id,
     licencias_totales,
     licencias_usadas,
     url_acceso,
     usuario_acceso,
-    password_acceso, // Quitamos api_key
+    password_acceso,
   } = req.body;
 
   try {
     const query = `
             INSERT INTO servicios (
                 nombre, descripcion, precio, moneda, frecuencia_pago, fecha_proximo_pago, 
-                metodo_pago, titular_pago, empresa_facturacion_id, empresa_usuaria_id, 
+                metodo_pago, numero_tarjeta_cuenta, titular_pago, cci, empresa_facturacion_id, empresa_usuaria_id, 
                 licencias_totales, licencias_usadas, creado_por_id,
                 url_acceso, usuario_acceso, password_acceso
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
             RETURNING *;
         `;
     const values = [
@@ -67,7 +69,9 @@ const createServicio = async (req, res) => {
       frecuencia_pago,
       fecha_proximo_pago || null,
       metodo_pago,
-      titular_pago,
+      numero_tarjeta_cuenta || null, // <--- NUEVO VALOR
+      titular_pago || null,
+      cci || null, // <--- NUEVO VALOR
       empresa_facturacion_id || null,
       empresa_usuaria_id || null,
       licencias_totales || 0,
@@ -101,7 +105,9 @@ const updateServicio = async (req, res) => {
     frecuencia_pago,
     fecha_proximo_pago,
     metodo_pago,
+    numero_tarjeta_cuenta, // <--- NUEVO CAMPO
     titular_pago,
+    cci, // <--- NUEVO CAMPO
     empresa_facturacion_id,
     empresa_usuaria_id,
     licencias_totales,
@@ -119,11 +125,11 @@ const updateServicio = async (req, res) => {
             UPDATE servicios SET 
                 nombre = $1, descripcion = $2, estado = $3, precio = $4, 
                 moneda = $5, frecuencia_pago = $6, fecha_proximo_pago = $7, 
-                metodo_pago = $8, titular_pago = $9, empresa_facturacion_id = $10, 
-                empresa_usuaria_id = $11, licencias_totales = $12, 
-                licencias_usadas = $13, modificado_por_id = $14,
-                url_acceso = $15, usuario_acceso = $16, password_acceso = $17
-            WHERE id = $18 RETURNING *;
+                metodo_pago = $8, numero_tarjeta_cuenta = $9, titular_pago = $10, cci = $11, 
+                empresa_facturacion_id = $12, empresa_usuaria_id = $13, licencias_totales = $14, 
+                licencias_usadas = $15, modificado_por_id = $16,
+                url_acceso = $17, usuario_acceso = $18, password_acceso = $19
+            WHERE id = $20 RETURNING *;
         `;
       values = [
         nombre,
@@ -134,7 +140,9 @@ const updateServicio = async (req, res) => {
         frecuencia_pago,
         fecha_proximo_pago || null,
         metodo_pago,
-        titular_pago,
+        numero_tarjeta_cuenta || null,
+        titular_pago || null,
+        cci || null,
         empresa_facturacion_id || null,
         empresa_usuaria_id || null,
         licencias_totales || 0,
@@ -150,11 +158,11 @@ const updateServicio = async (req, res) => {
             UPDATE servicios SET 
                 nombre = $1, descripcion = $2, estado = $3, precio = $4, 
                 moneda = $5, frecuencia_pago = $6, fecha_proximo_pago = $7, 
-                metodo_pago = $8, titular_pago = $9, empresa_facturacion_id = $10, 
-                empresa_usuaria_id = $11, licencias_totales = $12, 
-                licencias_usadas = $13, modificado_por_id = $14,
-                url_acceso = $15, usuario_acceso = $16
-            WHERE id = $17 RETURNING *;
+                metodo_pago = $8, numero_tarjeta_cuenta = $9, titular_pago = $10, cci = $11, 
+                empresa_facturacion_id = $12, empresa_usuaria_id = $13, licencias_totales = $14, 
+                licencias_usadas = $15, modificado_por_id = $16,
+                url_acceso = $17, usuario_acceso = $18
+            WHERE id = $19 RETURNING *;
         `;
       values = [
         nombre,
@@ -165,7 +173,9 @@ const updateServicio = async (req, res) => {
         frecuencia_pago,
         fecha_proximo_pago || null,
         metodo_pago,
-        titular_pago,
+        numero_tarjeta_cuenta || null,
+        titular_pago || null,
+        cci || null,
         empresa_facturacion_id || null,
         empresa_usuaria_id || null,
         licencias_totales || 0,
@@ -190,7 +200,7 @@ const updateServicio = async (req, res) => {
   }
 };
 
-// 4. Cambiar Estado
+// ... (Las funciones cambiarEstadoServicio, getPagosPorServicio y registrarPago se mantienen idénticas)
 const cambiarEstadoServicio = async (req, res) => {
   const { id } = req.params;
   const { estado } = req.body;
@@ -208,7 +218,6 @@ const cambiarEstadoServicio = async (req, res) => {
   }
 };
 
-// 5. Obtener el historial de pagos
 const getPagosPorServicio = async (req, res) => {
   const { id } = req.params;
   try {
@@ -229,7 +238,6 @@ const getPagosPorServicio = async (req, res) => {
   }
 };
 
-// 6. Registrar un nuevo pago
 const registrarPago = async (req, res) => {
   const { id } = req.params;
   const usuarioId = req.user ? req.user.id : null;

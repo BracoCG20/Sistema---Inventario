@@ -3,14 +3,7 @@ import api from '../../services/api';
 import { toast } from 'react-toastify';
 import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
-import {
-  FaCloudUploadAlt,
-  FaSave,
-  FaKey,
-  FaLock,
-  FaLink,
-  FaUserShield,
-} from 'react-icons/fa';
+import { FaCloudUploadAlt, FaSave } from 'react-icons/fa';
 import './AddServicioForm.scss';
 
 const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
@@ -25,24 +18,24 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
     frecuencia_pago: 'Mensual',
     fecha_proximo_pago: '',
     metodo_pago: '',
+    numero_tarjeta_cuenta: '',
     titular_pago: '',
+    cci: '',
     empresa_facturacion_id: '',
     empresa_usuaria_id: '',
     licencias_totales: 0,
     licencias_usadas: 0,
     estado: 'Activo',
-    // Credenciales
-    api_key: '', // Aunque lo ocultamos en la vista anterior, lo mantengo en el estado por si acaso
+    api_key: '',
     url_acceso: '',
     usuario_acceso: '',
     password_acceso: '',
   });
 
-  // --- ACTUALIZACIÓN: OPCIONES CON SÍMBOLOS ---
   const monedaOptions = [
     { value: 'USD', label: 'USD ($)' },
     { value: 'PEN', label: 'PEN (S/)' },
-    { value: 'EUR', label: 'EUR (€)' }, // Agregado Euro con símbolo
+    { value: 'EUR', label: 'EUR (€)' },
   ];
 
   const frecuenciaOptions = [
@@ -53,10 +46,9 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
   ];
 
   const metodoPagoOptions = [
-    { value: 'Tarjeta BCP', label: 'Tarjeta BCP' },
-    { value: 'Tarjeta Interbank', label: 'Tarjeta Interbank' },
-    { value: 'Tarjeta BBVA', label: 'Tarjeta BBVA' },
-    { value: 'PayPal', label: 'PayPal' },
+    { value: 'BCP', label: 'BCP' },
+    { value: 'Interbank', label: 'Interbank' },
+    { value: 'BBVA', label: 'BBVA' },
     { value: 'Transferencia', label: 'Transferencia' },
   ];
 
@@ -81,26 +73,27 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
   useEffect(() => {
     if (servicioToEdit) {
       setFormData({
-        nombre: servicioToEdit.nombre || '',
-        descripcion: servicioToEdit.descripcion || '',
-        precio: servicioToEdit.precio || '',
-        moneda: servicioToEdit.moneda || 'USD',
-        frecuencia_pago: servicioToEdit.frecuencia_pago || 'Mensual',
+        nombre: servicioToEdit.nombre ?? '',
+        descripcion: servicioToEdit.descripcion ?? '',
+        precio: servicioToEdit.precio ?? '',
+        moneda: servicioToEdit.moneda ?? 'USD',
+        frecuencia_pago: servicioToEdit.frecuencia_pago ?? 'Mensual',
         fecha_proximo_pago: servicioToEdit.fecha_proximo_pago
           ? servicioToEdit.fecha_proximo_pago.split('T')[0]
           : '',
-        metodo_pago: servicioToEdit.metodo_pago || '',
-        titular_pago: servicioToEdit.titular_pago || '',
-        empresa_facturacion_id: servicioToEdit.empresa_facturacion_id || '',
-        empresa_usuaria_id: servicioToEdit.empresa_usuaria_id || '',
-        licencias_totales: servicioToEdit.licencias_totales || 0,
-        licencias_usadas: servicioToEdit.licencias_usadas || 0,
-        estado: servicioToEdit.estado || 'Activo',
-        // Cargar credenciales
-        url_acceso: servicioToEdit.url_acceso || '',
-        usuario_acceso: servicioToEdit.usuario_acceso || '',
-        password_acceso: '', // Contraseña vacía por seguridad al editar
-        api_key: servicioToEdit.api_key || '',
+        metodo_pago: servicioToEdit.metodo_pago ?? '',
+        numero_tarjeta_cuenta: servicioToEdit.numero_tarjeta_cuenta ?? '',
+        titular_pago: servicioToEdit.titular_pago ?? '',
+        cci: servicioToEdit.cci ?? '',
+        empresa_facturacion_id: servicioToEdit.empresa_facturacion_id ?? '',
+        empresa_usuaria_id: servicioToEdit.empresa_usuaria_id ?? '',
+        licencias_totales: servicioToEdit.licencias_totales ?? 0,
+        licencias_usadas: servicioToEdit.licencias_usadas ?? 0,
+        estado: servicioToEdit.estado ?? 'Activo',
+        url_acceso: servicioToEdit.url_acceso ?? '',
+        usuario_acceso: servicioToEdit.usuario_acceso ?? '',
+        password_acceso: '',
+        api_key: servicioToEdit.api_key ?? '',
       });
     }
   }, [servicioToEdit]);
@@ -222,7 +215,8 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
       <hr style={{ margin: '0.2rem 0', borderTop: '1px solid #f1f5f9' }} />
 
       {/* SECCIÓN 2: FACTURACIÓN */}
-      <h4 className='form-section-title'>Facturación</h4>
+      <h4 className='form-section-title'>Facturación y Detalles de Pago</h4>
+
       <div className='form-row'>
         <div className='input-group'>
           <label>Precio y Moneda</label>
@@ -281,12 +275,33 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
           />
         </div>
         <div className='input-group'>
-          <label>Titular de la Tarjeta</label>
+          <label>Titular de la Tarjeta / Cuenta</label>
           <input
             name='titular_pago'
             value={formData.titular_pago}
             onChange={handleChange}
             placeholder='Ej: Juan Pérez'
+          />
+        </div>
+      </div>
+
+      <div className='form-row'>
+        <div className='input-group'>
+          <label>Número de Tarjeta / Cuenta</label>
+          <input
+            name='numero_tarjeta_cuenta'
+            value={formData.numero_tarjeta_cuenta}
+            onChange={handleChange}
+            placeholder='Ej: 4550 1234 ...'
+          />
+        </div>
+        <div className='input-group'>
+          <label>CCI (Cuenta Interbancaria)</label>
+          <input
+            name='cci'
+            value={formData.cci}
+            onChange={handleChange}
+            placeholder='Ej: 002-191-000...'
           />
         </div>
       </div>
@@ -309,6 +324,7 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
 
       {/* SECCIÓN 3: EMPRESAS Y LICENCIAS */}
       <h4 className='form-section-title'>Asignación</h4>
+
       <div className='form-row'>
         <div className='input-group'>
           <label>Empresa que Factura</label>

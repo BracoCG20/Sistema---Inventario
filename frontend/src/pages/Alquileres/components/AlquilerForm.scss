@@ -1,126 +1,244 @@
-@use "../../../styles/variables" as v;
+@use '../../../styles/variables' as v;
 
 .form-grid {
-	display: flex;
-	flex-direction: column;
-	gap: 18px;
-	padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 5px;
 
-	.form-group {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 
-		label {
-			font-size: 0.85rem;
-			font-weight: 700;
-			color: #4b5563;
-			margin-left: 2px;
-		}
+    label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #4b5563;
+      margin-left: 2px;
+    }
 
-		// Estilos base para inputs
-		input,
-		textarea {
-			width: 100%;
-			padding: 10px 14px;
-			border-radius: 8px;
-			border: 1px solid #cbd5e1;
-			font-size: 0.95rem;
-			color: #1f2937;
-			background-color: #fff;
-			transition: all 0.2s;
-			outline: none;
-			font-family: inherit;
-			box-sizing: border-box;
+    // Estilos base para inputs
+    input,
+    textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      font-size: 0.95rem;
+      color: #1f2937;
+      background-color: #fff;
+      transition: all 0.2s;
+      outline: none;
+      font-family: inherit;
+      box-sizing: border-box;
 
-			&:focus {
-				border-color: v.$primary;
-				box-shadow: 0 0 0 3px rgba(v.$primary, 0.15);
-			}
+      &:focus {
+        border-color: v.$primary;
+        box-shadow: 0 0 0 3px rgba(v.$primary, 0.15);
+      }
 
-			&::placeholder {
-				color: #9ca3af;
-			}
+      &::placeholder {
+        color: #9ca3af;
+      }
 
-			&:disabled {
-				background-color: #f3f4f6;
-				cursor: not-allowed;
-			}
-		}
+      &:disabled {
+        background-color: #f3f4f6;
+        cursor: not-allowed;
+      }
+    }
 
-		// --- CLASE ESPECÍFICA PARA EL PRECIO ---
-		// Fuerza la altura a 45px para igualar exactamente al React Select
-		.input-price {
-			height: 45px;
-			padding: 0 14px;
-			// Eliminamos line-height conflictivos
-		}
+    // --- CLASE ESPECÍFICA PARA EL PRECIO ---
+    // Fuerza la altura a 45px para igualar exactamente al React Select
+    .input-price {
+      height: 45px;
+      padding: 0 14px;
+      // Eliminamos line-height conflictivos
+    }
 
-		textarea {
-			resize: vertical;
-			min-height: 80px;
-		}
-	}
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+  }
 
-	// Dos columnas
-	.form-group-row {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 16px;
+  // Dos columnas
+  .form-group-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
 
-		@media (max-width: 600px) {
-			grid-template-columns: 1fr;
-		}
-	}
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr;
+    }
+  }
 
-	.full-width {
-		width: 100%;
-	}
+  .full-width {
+    width: 100%;
+  }
 
-	// Botones al final
-	.form-actions {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: 12px;
+  // Botones al final
+  .form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
 
-		margin-top: 10px;
-		padding-top: 20px;
-		border-top: 1px solid #e5e7eb;
+    margin-top: 10px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
 
-		button {
-			flex: 1;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			gap: 8px;
-			height: 45px;
-			border-radius: 8px;
-			font-weight: 600;
-			border: none;
-			cursor: pointer;
-			font-size: 0.95rem;
-			transition: all 0.2s ease;
+    button {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 45px;
+      border-radius: 8px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
 
-			&.btn-cancel {
-				background-color: #ffffff;
-				border: 1px solid #d1d5db;
-				color: #4b5563;
-				&:hover {
-					background-color: #f3f4f6;
-					border-color: #9ca3af;
-				}
-			}
+      &.btn-cancel {
+        background-color: #ffffff;
+        border: 1px solid #d1d5db;
+        color: #4b5563;
+        &:hover {
+          background-color: #f3f4f6;
+          border-color: #9ca3af;
+        }
+      }
 
-			&.btn-submit {
-				background-color: v.$primary;
-				color: white;
-				box-shadow: 0 4px 6px rgba(v.$primary, 0.2);
-				&:hover {
-					filter: brightness(1.1);
-					transform: translateY(-1px);
-				}
-			}
-		}
-	}
+      &.btn-submit {
+        background-color: v.$primary;
+        color: white;
+        box-shadow: 0 4px 6px rgba(v.$primary, 0.2);
+        &:hover {
+          filter: brightness(1.1);
+          transform: translateY(-1px);
+        }
+      }
+    }
+  }
+}
+
+// ... [Al final de AlquilerForm.scss] ...
+
+// --- ESTILOS DE ZONA DE CARGA DE ARCHIVO ---
+.file-upload-group {
+  margin-top: 5px;
+  padding-top: 15px;
+  border-top: 1px dashed #e2e8f0;
+
+  .upload-zone-form {
+    .upload-label-form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 20px;
+      border: 2px dashed #cbd5e1;
+      border-radius: 10px;
+      background-color: #f8fafc;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        border-color: v.$primary;
+        background-color: #f3f0ff;
+      }
+
+      svg {
+        font-size: 1.8rem;
+        color: v.$primary;
+      }
+      span {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.9rem;
+      }
+      small {
+        color: #94a3b8;
+        font-size: 0.75rem;
+      }
+    }
+  }
+
+  .file-preview-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: white;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+
+    .file-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      overflow: hidden;
+
+      .icon-pdf {
+        color: #ef4444;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+      }
+      .file-name {
+        font-weight: 600;
+        color: #334155;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+
+    .file-actions {
+      display: flex;
+      gap: 8px;
+
+      .btn-action {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        transition: 0.2s;
+
+        &.view {
+          background: #eef2ff;
+          color: #4f46e5;
+          &:hover {
+            background: #4f46e5;
+            color: white;
+          }
+        }
+        &.download {
+          background: #ecfdf5;
+          color: #10b981;
+          &:hover {
+            background: #10b981;
+            color: white;
+          }
+        }
+        &.delete {
+          background: #fef2f2;
+          color: #ef4444;
+          &:hover {
+            background: #ef4444;
+            color: white;
+          }
+        }
+      }
+    }
+  }
 }
