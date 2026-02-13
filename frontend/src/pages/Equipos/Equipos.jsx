@@ -333,7 +333,7 @@ const Equipos = () => {
                 <th className='center'>Icono</th>
                 <th>Equipo</th>
                 <th>Serie (S/N)</th>
-                <th>Fecha Compra</th>
+                <th>Fecha Aquirido</th>
                 <th>Antigüedad</th>
                 <th>Auditoría</th>
                 <th>Estado</th>

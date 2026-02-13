@@ -347,7 +347,7 @@ const Dashboard = () => {
       <div className='charts-row secondary-row'>
         {/* GRÁFICO 1: BARRAS APILADAS (TÍTULO CORREGIDO) */}
         <div className='chart-card'>
-          <h3>Inventario vs Rentados</h3>
+          <h3>Inventario vs Alquilados</h3>
           <div className='chart-wrapper'>
             <InventoryOriginChart data={inventoryOriginData} />
           </div>
