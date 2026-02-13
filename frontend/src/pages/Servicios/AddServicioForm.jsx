@@ -18,11 +18,12 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
     frecuencia_pago: 'Mensual',
     fecha_proximo_pago: '',
     metodo_pago: '',
-    numero_tarjeta_cuenta: '',
-    titular_pago: '',
-    cci: '',
     empresa_facturacion_id: '',
+    num_tarjeta_facturacion: '',
+    cci_facturacion: '',
     empresa_usuaria_id: '',
+    num_tarjeta_usuaria: '',
+    cci_usuaria: '',
     licencias_totales: 0,
     licencias_usadas: 0,
     estado: 'Activo',
@@ -82,11 +83,12 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
           ? servicioToEdit.fecha_proximo_pago.split('T')[0]
           : '',
         metodo_pago: servicioToEdit.metodo_pago ?? '',
-        numero_tarjeta_cuenta: servicioToEdit.numero_tarjeta_cuenta ?? '',
-        titular_pago: servicioToEdit.titular_pago ?? '',
-        cci: servicioToEdit.cci ?? '',
         empresa_facturacion_id: servicioToEdit.empresa_facturacion_id ?? '',
+        num_tarjeta_facturacion: servicioToEdit.num_tarjeta_facturacion ?? '',
+        cci_facturacion: servicioToEdit.cci_facturacion ?? '',
         empresa_usuaria_id: servicioToEdit.empresa_usuaria_id ?? '',
+        num_tarjeta_usuaria: servicioToEdit.num_tarjeta_usuaria ?? '',
+        cci_usuaria: servicioToEdit.cci_usuaria ?? '',
         licencias_totales: servicioToEdit.licencias_totales ?? 0,
         licencias_usadas: servicioToEdit.licencias_usadas ?? 0,
         estado: servicioToEdit.estado ?? 'Activo',
@@ -157,12 +159,11 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
   const customSelectStyles = {
     control: (provided, state) => ({
       ...provided,
-      background: state.isDisabled ? '#f1f5f9' : 'rgba(255, 255, 255, 0.9)',
+      background: state.isDisabled ? '#f1f5f9' : '#fff',
       borderColor: state.isFocused ? '#7c3aed' : '#cbd5e1',
       borderRadius: '8px',
       minHeight: '42px',
       boxShadow: state.isFocused ? '0 0 0 1px #7c3aed' : 'none',
-      cursor: state.isDisabled ? 'not-allowed' : 'default',
       '&:hover': { borderColor: state.isDisabled ? '#cbd5e1' : '#7c3aed' },
     }),
     option: (provided, state) => ({
@@ -175,10 +176,6 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
       color: state.isSelected ? 'white' : '#334155',
       cursor: 'pointer',
     }),
-    singleValue: (provided, state) => ({
-      ...provided,
-      color: state.isDisabled ? '#94a3b8' : '#334155',
-    }),
   };
 
   return (
@@ -186,7 +183,6 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
       className='equipo-form'
       onSubmit={handleSubmit}
     >
-      {/* SECCIÓN 1: DATOS BÁSICOS */}
       <h4 className='form-section-title'>Información General</h4>
       <div className='form-row-all'>
         <div className='input-group'>
@@ -214,9 +210,7 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
 
       <hr style={{ margin: '0.2rem 0', borderTop: '1px solid #f1f5f9' }} />
 
-      {/* SECCIÓN 2: FACTURACIÓN */}
-      <h4 className='form-section-title'>Facturación y Detalles de Pago</h4>
-
+      <h4 className='form-section-title'>Facturación</h4>
       <div className='form-row'>
         <div className='input-group'>
           <label>Precio y Moneda</label>
@@ -238,7 +232,7 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
               value={formData.precio}
               onChange={handleChange}
               placeholder='0.00'
-              style={{ flex: 1, minHeight: '42px' }}
+              style={{ flex: 1 }}
             />
           </div>
         </div>
@@ -270,43 +264,10 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
             }
             onChange={handleSelectChange}
             styles={customSelectStyles}
-            placeholder='Seleccione'
+            placeholder='Seleccione o escriba'
             isClearable
           />
         </div>
-        <div className='input-group'>
-          <label>Titular de la Tarjeta / Cuenta</label>
-          <input
-            name='titular_pago'
-            value={formData.titular_pago}
-            onChange={handleChange}
-            placeholder='Ej: Juan Pérez'
-          />
-        </div>
-      </div>
-
-      <div className='form-row'>
-        <div className='input-group'>
-          <label>Número de Tarjeta / Cuenta</label>
-          <input
-            name='numero_tarjeta_cuenta'
-            value={formData.numero_tarjeta_cuenta}
-            onChange={handleChange}
-            placeholder='Ej: 4550 1234 ...'
-          />
-        </div>
-        <div className='input-group'>
-          <label>CCI (Cuenta Interbancaria)</label>
-          <input
-            name='cci'
-            value={formData.cci}
-            onChange={handleChange}
-            placeholder='Ej: 002-191-000...'
-          />
-        </div>
-      </div>
-
-      <div className='form-row'>
         <div className='input-group'>
           <label>Próximo Pago Estimado</label>
           <input
@@ -314,20 +275,25 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
             name='fecha_proximo_pago'
             value={formData.fecha_proximo_pago}
             onChange={handleChange}
-            style={{ minHeight: '42px' }}
           />
         </div>
-        <div className='input-group'></div>
       </div>
 
       <hr style={{ margin: '0.2rem 0', borderTop: '1px solid #f1f5f9' }} />
 
-      {/* SECCIÓN 3: EMPRESAS Y LICENCIAS */}
-      <h4 className='form-section-title'>Asignación</h4>
-
+      <h4 className='form-section-title'>Asignación y Datos Bancarios</h4>
       <div className='form-row'>
-        <div className='input-group'>
-          <label>Empresa que Factura</label>
+        {/* BLOQUE EMPRESA FACTURA */}
+        <div className='input-group company-block'>
+          <label
+            style={{
+              color: '#4f46e5',
+              fontWeight: 'bold',
+              marginBottom: '10px',
+            }}
+          >
+            Empresa que Factura
+          </label>
           <Select
             name='empresa_facturacion_id'
             options={empresasOptions}
@@ -339,9 +305,39 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
             placeholder='Seleccione...'
             isClearable
           />
+          <div className='bank-details'>
+            <div className='field'>
+              <label>N° de Tarjeta / Cuenta</label>
+              <input
+                name='num_tarjeta_facturacion'
+                value={formData.num_tarjeta_facturacion}
+                onChange={handleChange}
+                placeholder='4550 ....'
+              />
+            </div>
+            <div className='field'>
+              <label>CCI (Cuenta Interbancaria)</label>
+              <input
+                name='cci_facturacion'
+                value={formData.cci_facturacion}
+                onChange={handleChange}
+                placeholder='002-191...'
+              />
+            </div>
+          </div>
         </div>
-        <div className='input-group'>
-          <label>Empresa que Usa el Servicio</label>
+
+        {/* BLOQUE EMPRESA USUARIA */}
+        <div className='input-group company-block'>
+          <label
+            style={{
+              color: '#059669',
+              fontWeight: 'bold',
+              marginBottom: '10px',
+            }}
+          >
+            Empresa que Usa
+          </label>
           <Select
             name='empresa_usuaria_id'
             options={empresasOptions}
@@ -353,6 +349,26 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
             placeholder='Seleccione...'
             isClearable
           />
+          <div className='bank-details'>
+            <div className='field'>
+              <label>N° de Tarjeta / Cuenta</label>
+              <input
+                name='num_tarjeta_usuaria'
+                value={formData.num_tarjeta_usuaria}
+                onChange={handleChange}
+                placeholder='4550 ....'
+              />
+            </div>
+            <div className='field'>
+              <label>CCI (Cuenta Interbancaria)</label>
+              <input
+                name='cci_usuaria'
+                value={formData.cci_usuaria}
+                onChange={handleChange}
+                placeholder='002-191...'
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -365,7 +381,6 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
             value={formData.licencias_totales}
             onChange={handleChange}
             min='0'
-            style={{ minHeight: '42px' }}
           />
         </div>
         <div className='input-group'>
@@ -376,7 +391,6 @@ const AddServicioForm = ({ onSuccess, servicioToEdit }) => {
             value={formData.licencias_usadas}
             onChange={handleChange}
             min='0'
-            style={{ minHeight: '42px' }}
           />
         </div>
       </div>

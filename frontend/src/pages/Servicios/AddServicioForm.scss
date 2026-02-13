@@ -7,7 +7,7 @@
   padding: 0.5rem;
   max-height: 80vh;
 
-  // Scrollbar (igual que en los otros modales si el contenido es largo)
+  // Scrollbar
   &::-webkit-scrollbar {
     width: 6px;
   }
@@ -19,15 +19,25 @@
     border-radius: 4px;
   }
 
+  .form-section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #334155;
+    margin: 0.5rem 0 0.2rem 0;
+    border-left: 4px solid v.$primary;
+    padding-left: 10px;
+  }
+
   .form-row {
     display: grid;
-    grid-template-columns: 1fr 1fr; // Dos columnas
+    grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
 
-    @media (max-width: 600px) {
-      grid-template-columns: 1fr; // Una columna en móvil
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
     }
   }
+
   .form-row-all {
     display: grid;
     grid-template-columns: 1fr;
@@ -41,16 +51,12 @@
     label {
       font-size: 0.85rem;
       font-weight: 600;
-      color: #64748b; // Mismo color de las etiquetas de tu imagen
-      text-transform: none; // Quitamos las mayúsculas para coincidir
-      letter-spacing: normal;
+      color: #64748b;
       display: flex;
       align-items: center;
     }
 
-    // Estilos para los inputs para que se vean como tu foto
-    input,
-    select {
+    input {
       width: 100%;
       padding: 10px 14px;
       border-radius: 8px;
@@ -58,12 +64,7 @@
       font-size: 0.95rem;
       color: #334155;
       background-color: #fff;
-      font-family: inherit;
       transition: all 0.2s ease;
-
-      &::placeholder {
-        color: #94a3b8;
-      }
 
       &:focus {
         outline: none;
@@ -72,41 +73,41 @@
       }
     }
 
-    input[type='file'] {
-      padding: 8px;
-      background: #f8fafc;
-      border: 1px dashed #cbd5e1; // Borde punteado como en tu imagen
-      cursor: pointer;
-      font-size: 0.85rem;
-      color: #64748b;
+    // --- ESTILOS PARA LOS BLOQUES DE EMPRESA ---
+    &.company-block {
+      background-color: #f8fafc;
+      padding: 1.2rem;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
 
-      // Estilo del botón interno "Seleccionar archivo"
-      &::file-selector-button {
-        background-color: #fff;
-        color: #334155;
-        border: 1px solid #e2e8f0;
-        padding: 5px 12px;
-        border-radius: 6px;
-        margin-right: 15px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
+      .bank-details {
+        margin-top: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem; // Espacio entre N° Tarjeta y CCI
 
-        &:hover {
-          background-color: #f1f5f9;
-          border-color: #cbd5e1;
+        .field {
+          display: flex;
+          flex-direction: column;
+          gap: 0.3rem;
+
+          label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            color: #94a3b8;
+          }
+
+          input {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+          }
         }
-      }
-
-      &:hover {
-        border-color: v.$primary;
-        background: #f3f0ff; // Un toque violeta muy suave al pasar el mouse
       }
     }
   }
 
   .btn-submit {
-    // Estilo exacto de tu botón morado ancho
     background-color: v.$primary;
     color: white;
     border: none;
